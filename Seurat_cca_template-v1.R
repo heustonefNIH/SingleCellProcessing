@@ -1,3 +1,5 @@
+##HI ME!!!!
+
 # Load libraries and user functions ----------------------------------------------------------
 
 ipak <- function(pkg){
@@ -17,7 +19,7 @@ ipak(packages)
 all_data.files <- c("Con3" = "Con3/outs/filtered_gene_bc_matrices/GRCh38/",
                     "DBA1_2" = "DBA1_2/outs/filtered_gene_bc_matrices/GRCh38/",
                     "DBA1_2" = "DBA1_2/outs/filtered_gene_bc_matrices/GRCh38/",
-                    "DBA1_2" = "DBA1_2/outs/filtered_gene_bc_matrices/GRCh38/") 
+                    "DBA1_2" = "DBA1_2/outs/filtered_gene_bc_matrices/GRCh38/")
 ProjectName<-"bmDBA"
 genome<- "GRCh38"
 Run_mito_filter = TRUE
@@ -49,17 +51,17 @@ if(Run_mito_filter == TRUE){
   par(mfrow = c(1,2))
   GenePlot(my_object, gene1 = "nUMI", gene2 = "percent.mito")
   GenePlot(my_object, gene1 = "nUMI", gene2 = "nGene")
-  
+
   png(paste(output_prefix, "_VlnStats.png", sep = ""), width = 800, height = 800)
   VlnPlot(my_object, features.plot = c("nGene", "nUMI", "percent.mito"), nCol = 3)
   dev.off()
-  
+
   png(paste(output_prefix, "_GenePlots.png", sep = ""), width = 800, height = 800)
   par(mfrow = c(1,2))
   GenePlot(my_object, gene1 = "nUMI", gene2 = "percent.mito")
   GenePlot(my_object, gene1 = "nUMI", gene2 = "nGene")
   dev.off()
-  
+
 } else {
   VlnPlot(my_object, features.plot = c("nGene", "nUMI"), nCol = 2)
   GenePlot(my_object, gene1 = "nUMI", gene2 = "nGene")
@@ -67,7 +69,7 @@ if(Run_mito_filter == TRUE){
   png(paste(output_prefix, "_VlnStats.png", sep = ""), width = 800, height = 800)
   VlnPlot(my_object, features.plot = c("nGene", "nUMI"), nCol = 2)
   dev.off()
-  
+
   png(paste(output_prefix, "_GenePlots.png", sep = ""), width = 800, height = 800)
   GenePlot(my_object, gene1 = "nUMI", gene2 = "nGene")
   dev.off()
