@@ -15,15 +15,15 @@ ipak(packages)
 # Define variables --------------------------------------------------------
 
 all_data.files <- c("Con3" = "Con3/outs/filtered_gene_bc_matrices/GRCh38/",
-                    "DBA1_2" = "DBA1_2/outs/filtered_gene_bc_matrices/GRCh38/",
-                    "DBA3_2" = "DBA3_2/outs/filtered_gene_bc_matrices/GRCh38/",
-                    "DBA4_2" = "DBA4_2/outs/filtered_gene_bc_matrices/GRCh38/")
+                    "DBA1" = "DBA1_2/outs/filtered_gene_bc_matrices/GRCh38/",
+                    "DBA3" = "DBA3_2/outs/filtered_gene_bc_matrices/GRCh38/",
+                    "DBA4" = "DBA4_2/outs/filtered_gene_bc_matrices/GRCh38/")
 ProjectName<-"bmDBA"
 genome<- "GRCh38"
 Run_mito_filter = FALSE
-output_prefix <-"20180510_bmDBA"
-max_pcs <-3
-resolution_list <-c(0.6, 0.8, 1.0, 1.5, 2.0, 2.5)
+output_prefix <-"20180517_bmDBA"
+max_pcs <-20
+resolution_list <-c(0.4)
 my_palette<-c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99', "gray40", "black","maroon3", "tan4", "paleturquoise4", "mediumorchid", "moccasin", "lemonchiffon", "darkslategrey", "lightsalmon1", "plum1", "seagreen", "firebrick4", "khaki2", primary.colors(20))
 
 # Load data ---------------------------------------------------------------
@@ -86,15 +86,29 @@ for (i in 1:length(multi_object_list)){
 }
 head(genes.use)
 # Run multi-set CCA
-
+length(genes.use)
 integrated_object<-RunMultiCCA(multi_object_list, genes.use = genes.use, num.ccs = max_pcs)
 
 MetageneBicorPlot(integrated_object, grouping.var = "sample", dims.eval = 1:max_pcs)
+png(filename = paste(output_prefix, "_BicorPlot.png", sep = ""), height = 800, width = 800)
+MetageneBicorPlot(integrated_object, grouping.var = "sample", dims.eval = 1:max_pcs)
+dev.off()
+
 
 integrated_object<-CalcVarExpRatio(integrated_object, reduction.type = "pca", grouping.var = "sample", dims.use = 1:max_pcs)
 integrated_object<-SubsetData(integrated_object, subset.name = "var.ratio.pca", accept.low = 0.5)
 integrated_object<-AlignSubspace(integrated_object, reduction.type = "cca", grouping.var = "sample", dims.align = 1:max_pcs)
-integrated_object<-FindClusters(integrated_object, reduction.type = "cca.aligned", dims.use = 1:max_pcs, save.SNN = T, resolution = 0.6)
+integrated_object<-FindClusters(integrated_object, reduction.type = "cca.aligned", dims.use = 1:max_pcs, save.SNN = T, resolution = resoultion_list)
+integrated_dba<-RunTSNE(integrated_dba, reduction.use = "cca.aligned", dims.use = 1:max_pcs)
+
+png(filename = paste(output_prefix, "_tsne.png", sep = ""), width = 800, height = 800)
+TSNEPlot(integrated_dba, do.label = TRUE, colors.use = my_palette, label.size = 10)
+dev.off()
+
+png(filename = paste(output_prefix, "_tsneID.png", sep = ""), width = 800, height = 800)
+TSNEPlot(integrated_dba, do.label = TRUE, group.by = "sample", colors.use = my_palette, label.size = 10)
+dev.off()
+
 
 
 
