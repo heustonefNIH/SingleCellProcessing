@@ -191,7 +191,7 @@ resolution=0.6
   my_object_markers_top100 <- my_object_markers %>% group_by(cluster) %>% top_n(100, avg_logFC)
   write.table(my_object_markers_top100, file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_markers_top100.txt", sep = ""), sep="\t", quote=F)
   my_object_markers_all <- my_object_markers %>% group_by(cluster)
-  write.table(my_object_markers_all, file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_markers_top100.txt", sep = ""), sep="\t", quote=F)
+  write.table(my_object_markers_all, file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_markers_all.txt", sep = ""), sep="\t", quote=F)
   
   SaveClusters(my_object, paste(output_prefix, "dim",max_pcs, "res",resolution,"_saveclusters.tsv", sep = ""))
 
@@ -215,23 +215,27 @@ resolution=0.6
   drawmyplot(geneList, my_object, name = paste(output_prefix, "dim",max_pcs, "res",resolution, sep = ""))
   
   # Tabulate data -----------------------------------------------------------
-
+  
   #Number of cells in each cluster
   table(my_object@ident)
+  write.table(table(my_object@ident), file = "test_table.txt", row.names = FALSE, quote = FALSE, sep = "\t")
+  
   
   #Number of cells in each ID
   table(my_object@meta.data$orig.ident)
+  write.table(table(my_object@meta.data$orig.ident), file = "test_table.txt", row.names = FALSE, quote = FALSE, sep = "\t", append = TRUE)
   
   #Proportion of cells in each cluster
   prop.table(x = table(my_object@ident))
+  write.table(prop.table(x = table(my_object@ident)), file = "test_table.txt", row.names = FALSE, quote = FALSE, sep = "\t", append = TRUE)
   
   #Number of cells from each ID in each cluster
   table(my_object@ident, my_object@meta.data$orig.ident)
+  write.table(table(my_object@ident, my_object@meta.data$orig.ident), file = "test_table.txt", row.names = FALSE, quote = FALSE, sep = "\t", append = TRUE)
   
   #Proportion of cells of each ID in each cluster
-  prop.table(my_object@ident, x = table(my_object@meta.data$orig.ident))
-  
-  
+  prop.table(x = table(my_object@ident, my_object@meta.data$orig.ident))
+  write.table(prop.table(x = table(my_object@ident, my_object@meta.data$orig.ident)), file = "test_table.txt", row.names = FALSE, quote = FALSE, sep = "\t", append = TRUE)
 
   # Average gene expression -------------------------------------------------
   
