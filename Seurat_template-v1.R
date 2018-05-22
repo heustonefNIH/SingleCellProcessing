@@ -22,9 +22,9 @@ ipak(packages)
 all_data.files <- c("MEP" = "MEPm/outs/filtered_gene_bc_matrices/mm10/") 
 ProjectName<-"MEP"
 genome<- "mm10"
-Run_mito_filter = TRUE
-output_prefix <-"20180509_msAggr"
-max_pcs <-10
+Run_mito_filter = FALSE
+output_prefix <-"test"
+max_pcs <-5
 # resolution_list <-c(0.6, 0.8, 1.0, 1.5, 2.0, 2.5)
 resolution_list <-0.6
 my_palette<-c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99', "gray40", "black","maroon3", "tan4", "paleturquoise4", "mediumorchid", "moccasin", "lemonchiffon", "darkslategrey", "lightsalmon1", "plum1", "seagreen", "firebrick4", "khaki2", primary.colors(80))
@@ -92,6 +92,7 @@ length(my_object@var.genes)
 
 if(Run_mito_filter == TRUE){
   my_object<-ScaleData(my_object, vars.to.regress = c("nUMI", "percent.mito"))
+  print("I scaled with percent.mito regression")
 } else {
   my_object<-ScaleData(my_object, vars.to.regress = "nUMI")
 }
@@ -99,21 +100,25 @@ if(Run_mito_filter == TRUE){
 
 # Run PCA -----------------------------------------------------------------
 
+plot_title<-paste(output_prefix, "dim",max_pcs, "res",resolution, sep = "")
 my_object<-RunPCA(my_object, pc.genes = my_object@var.genes, pcs.compute = max_pcs, do.print = TRUE, pcs.print = 1:5, genes.print = 5)
 
 PrintPCA(my_object, pcs.print = 1:5, genes.print = 5, use.full = FALSE) #Set use.full to TRUE to see projected PCA
 VizPCA(my_object, pcs.use = 1:5, use.full = FALSE)
 PCAPlot(my_object, dim.1 = 1, dim.2 = 2, use.full = FALSE)
-PCHeatmap(my_object, pc.use = 1:10, cells.use = 500, do.balanced = TRUE, label.columns = FALSE, use.full = FALSE)
+PCHeatmap(my_object, pc.use = 1:10, cells.use = 500, do.balanced = TRUE, label.columns = FALSE, use.full = FALSE, do.return=TRUE)
+
+my_plot<-PCAPlot(my_object, dim.1 = 1, dim.2 = 2, use.full = FALSE, do.return=TRUE)
+my_plot<-my_plot+ggtitle(plot_title)
+png(paste(output_prefix,"dim",max_pcs, "_PCAPlot.png", sep = ""), width = 800, height = 800)
+plot(my_plot)
+dev.off()
 
 png(paste(output_prefix, "dim",max_pcs, "_VizPCA.png", sep = ""), width = 800, height = 800)
-VizPCA(my_object, pcs.use = 1:5)
-dev.off()
-png(paste(output_prefix,"dim",max_pcs, "_PCAPlot.png", sep = ""), width = 800, height = 800)
-PCAPlot(my_object, dim.1 = 1, dim.2 = 2)
+VizPCA(my_object, pcs.use = 1:5, use.full = FALSE)
 dev.off()
 png(paste(output_prefix,"dim",max_pcs, "_PCAHeatmap.png", sep = ""), width = 800, height = 800)
-PCHeatmap(my_object, pc.use = 1:10, cells.use = 500, do.balanced = TRUE, label.columns = FALSE, use.full = FALSE)
+PCHeatmap(my_object, pc.use = 1:10, cells.use = 500, do.balanced = TRUE, label.columns = FALSE, use.full = FALSE, do.return=TRUE)
 dev.off()
 
 
@@ -160,25 +165,36 @@ dev.off()
 # Clustering --------------------------------------------------------------
 
 for(resolution in resolution_list){
-resolution=0.6
   my_object<-FindClusters(my_object, reduction.type = "pca", dims.use = 1:max_pcs, resolution = resolution, print.output = 0, save.SNN = TRUE)
   PrintFindClustersParams(my_object)
+  
+  
   
   my_object<-RunTSNE(my_object, dims.use = 1:max_pcs, do.fast = TRUE)
   TSNEPlot(my_object, colors.use = my_palette)
   TSNEPlot(my_object, colors.use = my_palette, do.label = TRUE, label.size = 10, group.by = "orig.ident")
   
+  
+  plot_title
+  my_tsne_plot<-TSNEPlot(my_object, colors.use = my_palette, do.return=TRUE)
+  my_tsne_plot<-my_tsne_plot + ggtitle(plot_title)
   png(paste(output_prefix, "dim",max_pcs, "res",resolution,"_tsne.png", sep = ""), width = 800, height = 800)
-  TSNEPlot(my_object, colors.use = my_palette)
+  try(plot(my_tsne_plot))
   dev.off()
+  my_tsne_plot<-TSNEPlot(my_object, colors.use = my_palette, do.label = TRUE, label.size = 10, do.return=TRUE)
+  my_tsne_plot<-my_tsne_plot + ggtitle(plot_title)
   png(paste(output_prefix, "dim",max_pcs, "res",resolution,"_tsne-Labeled.png", sep = ""), width = 800, height = 800)
-  TSNEPlot(my_object, colors.use = my_palette, do.label = TRUE, label.size = 10)
+  try(plot(my_tsne_plot))
   dev.off()
+  my_tsne_plot<-TSNEPlot(my_object, colors.use = my_palette, group.by = "orig.ident", do.return=TRUE)
+  my_tsne_plot<-my_tsne_plot + ggtitle(plot_title)
   png(paste(output_prefix, "dim",max_pcs, "res",resolution,"_tsnebyID.png", sep = ""), width = 800, height = 800)
-  TSNEPlot(my_object, colors.use = my_palette, group.by = "orig.ident")
+  try(plot(my_tsne_plot))
   dev.off()
+  my_tsne_plot<-TSNEPlot(my_object, colors.use = my_palette, do.label = TRUE, label.size = 10, group.by = "orig.ident", do.return=TRUE)
+  my_tsne_plot<-my_tsne_plot + ggtitle(plot_title)
   png(paste(output_prefix, "dim",max_pcs, "res",resolution,"_tsnebyID-Labeled.png", sep = ""), width = 800, height = 800)
-  TSNEPlot(my_object, colors.use = my_palette, do.label = TRUE, label.size = 10, group.by = "orig.ident")
+  try(plot(my_tsne_plot))
   dev.off()
   
   
@@ -251,7 +267,6 @@ resolution=0.6
 
   
 }
-
 
 
 
