@@ -1,17 +1,5 @@
 # Load libraries and user functions ----------------------------------------------------------
 
-ipak <- function(pkg){
-  new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
-  # if (length(new.pkg))
-  #   install.packages(new.pkg, dependencies = TRUE)
-  sapply(pkg, library, character.only = TRUE)
-}
-
-packages<-c("Seurat", "dplyr", "colorRamps")
-
-# Load libraries
-ipak(packages)
-
 # Define variables --------------------------------------------------------
 
 # all_data.files <- c("LSK" = "LSKm2/outs/filtered_gene_bc_matrices/mm10/",
@@ -106,7 +94,7 @@ if(Run_mito_filter == TRUE){
 
 # Run PCA -----------------------------------------------------------------
 
-plot_title<-paste(output_prefix, "dim",max_pcs, "res",resolution, sep = "")
+plot_title<-paste(output_prefix, "dim",max_pcs, sep = "")
 my_object<-RunPCA(my_object, pc.genes = my_object@var.genes, pcs.compute = max_pcs, do.print = TRUE, pcs.print = 1:5, genes.print = 5)
 
 PrintPCA(my_object, pcs.print = 1:5, genes.print = 5, use.full = FALSE) #Set use.full to TRUE to see projected PCA
@@ -216,71 +204,62 @@ for(resolution in resolution_list){
   
   saveRDS(my_object, file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_tsne.rds", sep = ""))
   print(paste("Saved ",output_prefix, "dim",max_pcs, "res",resolution,"_tsne.rds", sep = ""))
-  # # Finding markers ---------------------------------------------------------
-  # 
-  # my_object_markers<-FindAllMarkers(my_object, only.pos = FALSE, min.pct = 0.25, logfc.threshold = 0.25)
-  # 
-  # my_object_markers_top100 <- my_object_markers %>% group_by(cluster) %>% top_n(100, avg_logFC)
-  # write.table(my_object_markers_top100, file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_markers_top100.txt", sep = ""), sep="\t", quote=F)
-  # my_object_markers_all <- my_object_markers %>% group_by(cluster)
-  # write.table(my_object_markers_all, file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_markers_all.txt", sep = ""), sep="\t", quote=F)
-  # 
-  # SaveClusters(my_object, paste(output_prefix, "dim",max_pcs, "res",resolution,"_saveclusters.tsv", sep = ""))
-  # 
-  # # Print gene plots --------------------------------------------------------
-  # 
-  # drawmyplot<-function(geneList, tsne.obj, name){
-  #   for(gene in geneList){
-  #     png(filename=paste(name, "-Vln_",gene, ".png", sep=""), width=800, heigh=800)
-  #     try(print(VlnPlot(tsne.obj, gene, do.return = T, point.size.use = 0, cols.use = my_palette)))
-  #     dev.off()
-  #     png(filename=paste(name, "-Ftr_",gene, ".png", sep=""), width=800, height=800)
-  #     try(FeaturePlot(tsne.obj, gene,cols.use=c("grey", "blue"), pt.size = 1, do.return = T))
-  #     dev.off()
-  #   }
-  # }
-  # 
-  # geneList = c("Nfe2", "Gata1", "Gata2", "Hbg1", "Hbg2", "Zfpm1", "Hbb", "Hba1", "Hba2", "Hbd", "Hbe1", "Klf1", "Fli1", "Meis1", "Kit", "Vwf", "Pf4", "Mpo", "Runx1", "Csf1", "Tfr2", "Cnrip1", "Myc" ,"Tk1", "Rrm2", "Itga2b", "Lmna", "Nfia", "Gp1bb", "Plek", "Pbx1", "Hes6", "E2f4","Dntt", "Vpreb1", "Id3", "Atf3", "Jchain", "Cd79a", "Satb1", "Sp140", "Tgfbi", "Lgmn", "Irf8", "Irf7", "Tcf4",  "Batf3", "Tcf19", "Sell", "Cd52", "Hoxb5", "Gata3", "Eno1", "Mpo", "Atp8b4", "Spi1", "Mafk", "Hdc", "Prg2", "Lmo4","Ctsg","Elane", "Cebpa", "Lgals1", "Fosb", "Prtn3",  "Tfrc", "Mpl", "Flt3", "Ca1", "Cd177", "Cd180","Cd244","Cd24","Cd27","Cd34","Cd37","Cd47","Cd48","Cd52","Cd53","Cd63","Cd68","Cd69","Cd72","Cd74","Cd81","Cd82","Cd84","Cd9","Cd93", "Mt1a", "Mt1g", "Mt1f", "Mt1e", "Mt1x")
-  # drawmyplot(geneList, my_object, name = paste(output_prefix, "dim",max_pcs, "res",resolution, sep = ""))
-  # 
-  # housekeepingGenes<-c("Actb", "Gapdh", "Rn18s", "Ppia", "Rpl13a", "Rplp0", "B2m", "Hmbs", "Pgk1", "Alas1", "Gusb", "Sdha", "Tbp", "Tubb", "Ywhaz")
-  # drawmyplot(geneList, my_object, name = paste(output_prefix, "dim",max_pcs, "res",resolution, sep = ""))
-  # 
-  # # Tabulate data -----------------------------------------------------------
-  # 
-  # #Number of cells in each cluster
-  # table(my_object@ident)
-  # write.table(table(my_object@ident), file = "test_table.txt", row.names = FALSE, quote = FALSE, sep = "\t")
-  # 
-  # 
-  # #Number of cells in each ID
-  # table(my_object@meta.data$orig.ident)
-  # write.table(table(my_object@meta.data$orig.ident), file = "test_table.txt", row.names = FALSE, quote = FALSE, sep = "\t", append = TRUE)
-  # 
-  # #Proportion of cells in each cluster
-  # prop.table(x = table(my_object@ident))
-  # write.table(prop.table(x = table(my_object@ident)), file = "test_table.txt", row.names = FALSE, quote = FALSE, sep = "\t", append = TRUE)
-  # 
-  # #Number of cells from each ID in each cluster
-  # table(my_object@ident, my_object@meta.data$orig.ident)
-  # write.table(table(my_object@ident, my_object@meta.data$orig.ident), file = "test_table.txt", row.names = FALSE, quote = FALSE, sep = "\t", append = TRUE)
-  # 
-  # #Proportion of cells of each ID in each cluster
-  # prop.table(x = table(my_object@ident, my_object@meta.data$orig.ident))
-  # write.table(prop.table(x = table(my_object@ident, my_object@meta.data$orig.ident)), file = "test_table.txt", row.names = FALSE, quote = FALSE, sep = "\t", append = TRUE)
-  # 
-  # # Average gene expression -------------------------------------------------
-  # 
-  # cluster_averages<-AverageExpression(my_object, return.seurat = TRUE, show.progress = TRUE)
-  # DoHeatmap(cluster_averages, genes.use = PCTopGenes(my_object, pc.use = 1, do.balanced = TRUE), group.label.rot = TRUE, group.cex = 0)
-  # 
-  # png(paste(output_prefix, "dim",max_pcs, "res",resolution,"_ClusteredHeatmap.png", sep = ""), width = 800, height = 800)
-  # DoHeatmap(cluster_averages, genes.use = PCTopGenes(my_object, pc.use = 1, do.balanced = TRUE), group.label.rot = TRUE, group.cex = 0)
-  # dev.off()
-  # 
-  # 
-  # 
+  # Finding markers ---------------------------------------------------------
 
+  my_object_markers<-FindAllMarkers(my_object, only.pos = FALSE, min.pct = 0.25, logfc.threshold = 0.25)
+
+  my_object_markers_top100 <- my_object_markers %>% group_by(cluster) %>% top_n(100, avg_logFC)
+  write.table(my_object_markers_top100, file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_markers_top100.txt", sep = ""), sep="\t", quote=F)
+  my_object_markers_all <- my_object_markers %>% group_by(cluster)
+  write.table(my_object_markers_all, file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_markers_all.txt", sep = ""), sep="\t", quote=F)
+
+  SaveClusters(my_object, paste(output_prefix, "dim",max_pcs, "res",resolution,"_saveclusters.tsv", sep = ""))
+
+  # Print gene plots --------------------------------------------------------
+
+  drawmyplot<-function(geneList, tsne.obj, name){
+    for(gene in geneList){
+      png(filename=paste(name, "-Vln_",gene, ".png", sep=""), width=800, heigh=800)
+      try(print(VlnPlot(tsne.obj, gene, do.return = T, point.size.use = 0, cols.use = my_palette)))
+      dev.off()
+      png(filename=paste(name, "-Ftr_",gene, ".png", sep=""), width=800, height=800)
+      try(FeaturePlot(tsne.obj, gene,cols.use=c("grey", "blue"), pt.size = 1, do.return = T))
+      dev.off()
+    }
+  }
+
+  geneList = c("Nfe2", "Gata1", "Gata2", "Hbg1", "Hbg2", "Zfpm1", "Hbb", "Hba1", "Hba2", "Hbd", "Hbe1", "Klf1", "Fli1", "Meis1", "Kit", "Vwf", "Pf4", "Mpo", "Runx1", "Csf1", "Tfr2", "Cnrip1", "Myc" ,"Tk1", "Rrm2", "Itga2b", "Lmna", "Nfia", "Gp1bb", "Plek", "Pbx1", "Hes6", "E2f4","Dntt", "Vpreb1", "Id3", "Atf3", "Jchain", "Cd79a", "Satb1", "Sp140", "Tgfbi", "Lgmn", "Irf8", "Irf7", "Tcf4",  "Batf3", "Tcf19", "Sell", "Cd52", "Hoxb5", "Gata3", "Eno1", "Mpo", "Atp8b4", "Spi1", "Mafk", "Hdc", "Prg2", "Lmo4","Ctsg","Elane", "Cebpa", "Lgals1", "Fosb", "Prtn3",  "Tfrc", "Mpl", "Flt3", "Ca1", "Cd177", "Cd180","Cd244","Cd24","Cd27","Cd34","Cd37","Cd47","Cd48","Cd52","Cd53","Cd63","Cd68","Cd69","Cd72","Cd74","Cd81","Cd82","Cd84","Cd9","Cd93", "Mt1a", "Mt1g", "Mt1f", "Mt1e", "Mt1x")
+  drawmyplot(geneList, my_object, name = paste(output_prefix, "dim",max_pcs, "res",resolution, sep = ""))
+
+  housekeepingGenes<-c("Actb", "Gapdh", "Rn18s", "Ppia", "Rpl13a", "Rplp0", "B2m", "Hmbs", "Pgk1", "Alas1", "Gusb", "Sdha", "Tbp", "Tubb", "Ywhaz")
+  drawmyplot(geneList, my_object, name = paste(output_prefix, "dim",max_pcs, "res",resolution, sep = ""))
+
+  # Tabulate data -----------------------------------------------------------
+  
+  #Number of cells in each cluster
+  table(my_object@ident)
+  write.table(table(my_object@ident), file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_popCounts.txt", sep = ""), row.names = FALSE, quote = FALSE, sep = "\t")
+  
+  
+  #Number of cells in each ID
+  table(my_object@meta.data$orig.ident)
+  write.table(table(my_object@meta.data$orig.ident), file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_popCounts.txt", sep = ""), row.names = FALSE, quote = FALSE, sep = "\t", append = TRUE)
+  
+  #Proportion of cells in each cluster
+  prop.table(x = table(my_object@ident))
+  write.table(prop.table(x = table(my_object@ident)), file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_popCounts.txt", sep = ""), row.names = FALSE, quote = FALSE, sep = "\t", append = TRUE)
+  
+  #Number of cells from each ID in each cluster
+  table(my_object@ident, my_object@meta.data$orig.ident)
+  write.table(table(my_object@ident, my_object@meta.data$orig.ident), file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_popCounts.txt", sep = ""), row.names = FALSE, quote = FALSE, sep = "\t", append = TRUE)
+  
+  #Proportion of cells of each ID in each cluster
+  prop.table(x = table(my_object@ident, my_object@meta.data$orig.ident))
+  write.table(prop.table(x = table(my_object@ident, my_object@meta.data$orig.ident)), file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_popCounts.txt", sep = ""), row.names = FALSE, quote = FALSE, sep = "\t", append = TRUE)
+  
+  #Average expression of each gene in each cluster
+  avgexp<-AverageExpression(my_object)
+  write.table(table(my_object@ident), file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_AvgXprsn.txt", sep = ""), row.names = TRUE, quote = FALSE, sep = "\t")
 
 }
 

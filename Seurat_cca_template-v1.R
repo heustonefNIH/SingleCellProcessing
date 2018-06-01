@@ -14,17 +14,44 @@ ipak(packages)
 
 # Define variables --------------------------------------------------------
 
-all_data.files <- c("Con3" = "Con3/outs/filtered_gene_bc_matrices/GRCh38/",
-                    "DBA1" = "DBA1_2/outs/filtered_gene_bc_matrices/GRCh38/",
-                    "DBA3" = "DBA3_2/outs/filtered_gene_bc_matrices/GRCh38/",
-                    "DBA4" = "DBA4_2/outs/filtered_gene_bc_matrices/GRCh38/")
-ProjectName<-"bmDBA"
-genome<- "GRCh38"
+all_data.files <- c("WTLSK" = "WT_LSK/outs/filtered_gene_bc_matrices/mm10/",
+                    "HETLSK" = "HET_LSK/outs/filtered_gene_bc_matrices/mm10/",
+                    "WTB220" = "WT_B220/outs/filtered_gene_bc_matrices/mm10/",
+                    "HETB220" = "HET_B220/outs/filtered_gene_bc_matrices/mm10/")
+ProjectName<-"Stjude_cca"
+genome<- "mm10"
 Run_mito_filter = FALSE
-output_prefix <-"20180517_bmDBA"
-max_pcs <-40
+output_prefix <-"20180601_Stjude_cca"
+max_pcs <-21
 resolution_list <-c(0.6, 0.8, 1.0, 1.2, 1.5, 2.0, 2.5)
-my_palette<-c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99', "gray40", "black","maroon3", "tan4", "paleturquoise4", "mediumorchid", "moccasin", "lemonchiffon", "darkslategrey", "lightsalmon1", "plum1", "seagreen", "firebrick4", "khaki2", primary.colors(20))
+#resolution_list<-0.6
+# Define basic color palette ----------------------------------------------
+
+my_palette<-c("#cb4bbe",
+                 "lightskyblue",
+                 "grey37",
+                 "#53ba48",
+                 "moccasin",
+                 "#dcca44",
+                 "#502d70",
+                 "#afd671",
+                 "#cb4471",
+                 "#69da99",
+                 "#d44732",
+                 "#6fd3cf",
+                 "#5d2539",
+                 "#cfd0a0",
+                 "blue",
+                 "#d2883b",
+                 "#6793c0",
+                 "#898938",
+                 "#c98ac2",
+                 "yellow",
+                 "#c4c0cc",
+                 "#7d3d23",
+                 "#00a5ff",
+                 "#d68d7a",
+                 "#a2c1a3")
 
 # Load data ---------------------------------------------------------------
 
@@ -90,34 +117,68 @@ head(genes.use)
 
 # Iterate across multiple resolutions -------------------------------------
 
-for(my_resolution in resolution_list){
 
-  integrated_object<-RunMultiCCA(multi_object_list, genes.use = genes.use, num.ccs = max_pcs)
+integrated_object<-RunMultiCCA(multi_object_list, genes.use = genes.use, num.ccs = max_pcs)
+
+png(filename = paste(output_prefix,"_dim",max_pcs, "_BicorPlot.png", sep = ""), height = 800, width = 800)
+MetageneBicorPlot(integrated_object, grouping.var = "sample", dims.eval = 1:max_pcs)
+dev.off()
+
+integrated_object<-CalcVarExpRatio(integrated_object, reduction.type = "pca", grouping.var = "sample", dims.use = 1:max_pcs)
+integrated_object<-SubsetData(integrated_object, subset.name = "var.ratio.pca", accept.low = 0.5)
+integrated_object<-AlignSubspace(integrated_object, reduction.type = "cca", grouping.var = "sample", dims.align = 1:max_pcs)
+
   
-  png(filename = paste(output_prefix,"_dim",max_pcs,"res", my_resolution, "_BicorPlot.png", sep = ""), height = 800, width = 800)
-  MetageneBicorPlot(integrated_object, grouping.var = "sample", dims.eval = 1:max_pcs)
-  dev.off()
-  
-  png(filename = paste(output_prefix,"_dim",max_pcs,"res", my_resolution, "_DimHeatmapPlot.png", sep = ""), height = 800, width = 800)
-  DimHeatmap(integrated_dba, reduction.type = "cca", cells.use = 500, dim.use = 1:max_pcs, do.balanced = TRUE)
-  dev.off()
-  
-  
-  integrated_object<-CalcVarExpRatio(integrated_object, reduction.type = "pca", grouping.var = "sample", dims.use = 1:max_pcs)
-  integrated_object<-SubsetData(integrated_object, subset.name = "var.ratio.pca", accept.low = 0.5)
-  integrated_object<-AlignSubspace(integrated_object, reduction.type = "cca", grouping.var = "sample", dims.align = 1:max_pcs)
+for(my_resolution in resolution_list){
   integrated_object<-FindClusters(integrated_object, reduction.type = "cca.aligned", dims.use = 1:max_pcs, save.SNN = T, resolution = my_resolution)
-  integrated_dba<-RunTSNE(integrated_dba, reduction.use = "cca.aligned", dims.use = 1:max_pcs)
+  integrated_dba<-RunTSNE(integrated_object, reduction.use = "cca.aligned", dims.use = 1:max_pcs)
   
-  png(filename = paste(output_prefix, "_tsne.png", sep = ""), width = 800, height = 800)
+  # Create color pallete
+  new_length <-0
+  if(length(unique(integrated_dba@ident)) > length(my_palette)){
+    new_length<-length(unique(integrated_dba@ident)) - length(my_palette)
+  }
+  new_length
+  my_palette<-c(my_palette, primary.colors(new_length))
+  
+
+  png(filename = paste(output_prefix, "dim",max_pcs, "res",resolution,"_tsne.png", sep = ""), width = 800, height = 800)
   TSNEPlot(integrated_dba, do.label = TRUE, colors.use = my_palette, label.size = 10)
   dev.off()
 
-  png(filename = paste(output_prefix, "_tsneID.png", sep = ""), width = 800, height = 800)
+  png(filename = paste(output_prefix, "dim",max_pcs, "res",resolution,"_tsne-Labeled.png", sep = ""), width = 800, height = 800)
   TSNEPlot(integrated_dba, do.label = TRUE, group.by = "sample", colors.use = my_palette, label.size = 10)
   dev.off()
 
-  saveRDS(integrated_dba, file = paste(output_prefix, "_dim", max_pcs, "res", my_resolution, "tsne.RDS"))
+  saveRDS(integrated_dba, file = paste(output_prefix, "_dim", max_pcs, "res", my_resolution, "_tsne.rds", sep = ""))
+  
+  # Tabulate data -----------------------------------------------------------
+  
+  #Number of cells in each cluster
+  table(integrated_dba@ident)
+  write.table(table(integrated_dba@ident), file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_popCounts.txt", sep = ""), row.names = FALSE, quote = FALSE, sep = "\t")
+  
+  
+  #Number of cells in each ID
+  table(integrated_dba@meta.data$orig.ident)
+  write.table(table(integrated_dba@meta.data$orig.ident), file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_popCounts.txt", sep = ""), row.names = FALSE, quote = FALSE, sep = "\t", append = TRUE)
+  
+  #Proportion of cells in each cluster
+  prop.table(x = table(integrated_dba@ident))
+  write.table(prop.table(x = table(integrated_dba@ident)), file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_popCounts.txt", sep = ""), row.names = FALSE, quote = FALSE, sep = "\t", append = TRUE)
+  
+  #Number of cells from each ID in each cluster
+  table(integrated_dba@ident, integrated_dba@meta.data$orig.ident)
+  write.table(table(integrated_dba@ident, integrated_dba@meta.data$orig.ident), file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_popCounts.txt", sep = ""), row.names = FALSE, quote = FALSE, sep = "\t", append = TRUE)
+  
+  #Proportion of cells of each ID in each cluster
+  prop.table(x = table(integrated_dba@ident, integrated_dba@meta.data$orig.ident))
+  write.table(prop.table(x = table(integrated_dba@ident, integrated_dba@meta.data$orig.ident)), file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_popCounts.txt", sep = ""), row.names = FALSE, quote = FALSE, sep = "\t", append = TRUE)
+  
+  #Average expression of each gene in each cluster
+  avgexp<-AverageExpression(integrated_dba)
+  write.table(table(integrated_dba@ident), file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_AvgXprsn.txt", sep = ""), row.names = TRUE, quote = FALSE, sep = "\t")
+
 
 }
 
