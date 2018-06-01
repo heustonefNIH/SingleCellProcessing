@@ -14,11 +14,11 @@ ipak(packages)
 
 # Define variables --------------------------------------------------------
 
-all_data.files <- c("WTLSK" = "WT_LSK/outs/filtered_gene_bc_matrices/mm10/",
-                    "HETLSK" = "HET_LSK/outs/filtered_gene_bc_matrices/mm10/",
-                    "WTB220" = "WT_B220/outs/filtered_gene_bc_matrices/mm10/",
-                    "HETB220" = "HET_B220/outs/filtered_gene_bc_matrices/mm10/")
-ProjectName<-"Stjude_cca"
+all_data.files <- c(WTLSK = "WT_LSK",
+                    HETLSK = "HET_LSK",
+                    WTB220 = "WT_B220",
+                    HETB220 = "HET_B220")
+ProjectName<-"Stjude"
 genome<- "mm10"
 Run_mito_filter = FALSE
 output_prefix <-"20180601_Stjude_cca"
@@ -56,9 +56,11 @@ my_palette<-c("#cb4bbe",
 # Load data ---------------------------------------------------------------
 
 # Alter output name based on filter parameters
+ProjectName<-paste(ProjectName, "_cca", sep = "")
 
 if(Run_mito_filter == TRUE){
   output_prefix<-paste(output_prefix, "_mt", sep = "")
+  ProjectName<-paste(ProjectName, "_mt", sep = "")
 }
 
 multi_object_list<-list()
@@ -68,9 +70,11 @@ list_of_names
 
 # Create multi_object_list
 create_multi_object_list<-function(x){
-  my_object.data<-Read10X(x)
+  x[[1]]<-paste(x[[1]], "/outs/filtered_gene_bc_matrices/",genome,"/", sep="")
+  print(x)
+  my_object.data<-Read10X({names(x) = x[[1]]})
   my_object<- CreateSeuratObject(raw.data = my_object.data, min.cells = 3, min.genes = 200, project = ProjectName)
-  
+
   # Apply mito.filter if applicable
   if(Run_mito_filter == TRUE){
     mito.genes<-grep(pattern = "^MT-", x = rownames(x=my_object@data), value = TRUE, ignore.case = TRUE)
@@ -129,8 +133,8 @@ integrated_object<-SubsetData(integrated_object, subset.name = "var.ratio.pca", 
 integrated_object<-AlignSubspace(integrated_object, reduction.type = "cca", grouping.var = "sample", dims.align = 1:max_pcs)
 
   
-for(my_resolution in resolution_list){
-  integrated_object<-FindClusters(integrated_object, reduction.type = "cca.aligned", dims.use = 1:max_pcs, save.SNN = T, resolution = my_resolution)
+for(resolution in resolution_list){
+  integrated_object<-FindClusters(integrated_object, reduction.type = "cca.aligned", dims.use = 1:max_pcs, save.SNN = T, resolution = resolution)
   integrated_dba<-RunTSNE(integrated_object, reduction.use = "cca.aligned", dims.use = 1:max_pcs)
   
   # Create color pallete
