@@ -1,21 +1,57 @@
 # Load libraries and user functions ----------------------------------------------------------
 
+ipak <- function(pkg){
+  new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+  # if (length(new.pkg))
+  #   install.packages(new.pkg, dependencies = TRUE)
+  sapply(pkg, library, character.only = TRUE)
+}
+
+packages<-c("Seurat", "dplyr", "colorRamps")
+
+# Load libraries
+ipak(packages)
+
 # Define variables --------------------------------------------------------
 
-# all_data.files <- c("LSK" = "LSKm2/outs/filtered_gene_bc_matrices/mm10/",
-#                     "CMP" = "CMPm2/outs/filtered_gene_bc_matrices/mm10/",
-#                     "MEP" = "MEPm/outs/filtered_gene_bc_matrices/mm10/",
-#                     "GMP" = "GMPm/outs/filtered_gene_bc_matrices/mm10/") 
-
-all_data.files <- c("MEP" = "MEPm/outs/filtered_gene_bc_matrices/mm10/") 
-ProjectName<-"MEP"
+all_data.files <- c(LSK = "LSKm2",
+                    CMP = "CMPm2",
+                    MEP = "MEPm",
+                    GMP = "GMPm")
+ProjectName<-"msAggr"
 genome<- "mm10"
 Run_mito_filter = FALSE
-output_prefix <-"test"
+output_prefix <-"20180601_msAggr_"
 max_pcs <-5
-# resolution_list <-c(0.6, 0.8, 1.0, 1.5, 2.0, 2.5)
-resolution_list <-0.6
-my_palette<-c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99', "gray40", "black","maroon3", "tan4", "paleturquoise4", "mediumorchid", "moccasin", "lemonchiffon", "darkslategrey", "lightsalmon1", "plum1", "seagreen", "firebrick4", "khaki2", primary.colors(80))
+# resolution_list <-c(0.6, 0.8, 1.0, 1.2, 1.5, 2.0, 2.5)
+resolution_list<-0.6
+# Define basic color palette ----------------------------------------------
+
+my_palette<-c("#cb4bbe",
+                 "lightskyblue",
+                 "grey37",
+                 "#53ba48",
+                 "moccasin",
+                 "#dcca44",
+                 "#502d70",
+                 "#afd671",
+                 "#cb4471",
+                 "#69da99",
+                 "#d44732",
+                 "#6fd3cf",
+                 "#5d2539",
+                 "#cfd0a0",
+                 "blue",
+                 "#d2883b",
+                 "#6793c0",
+                 "#898938",
+                 "#c98ac2",
+                 "yellow",
+                 "#c4c0cc",
+                 "#7d3d23",
+                 "#00a5ff",
+                 "#d68d7a",
+                 "#a2c1a3")
 
 # Load data ---------------------------------------------------------------
 
@@ -25,8 +61,14 @@ if(Run_mito_filter == TRUE){
   output_prefix<-paste(output_prefix, "_mt", sep = "")
 }
 
+# Read in 10XGenomics files
+read_10XGenomics_data<-function(x){
+  x[[1]]<-paste(x[[1]], "/outs/filtered_gene_bc_matrices/",genome,"/", sep="")
+}
+data_files.list<-lapply(1:length(all_data.files), function(x) read_10XGenomics_data(all_data.files[x]))
+names(data_files.list)<-names(all_data.files)
 
-my_object.data<-Read10X(all_data.files)
+my_object.data<-Read10X(data_files.list)
 my_object<- CreateSeuratObject(raw.data = my_object.data, min.cells = 3, min.genes = 200, project = ProjectName)
 # filter_cells_and_genes(my_obj,min_UMIs=1000,max_UMIs=25000,min_detected_genes=1000,max_detected_genes=5000,max_percent_mito=9) <--Supat's filter
 

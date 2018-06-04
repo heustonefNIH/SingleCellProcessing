@@ -63,10 +63,6 @@ if(Run_mito_filter == TRUE){
   ProjectName<-paste(ProjectName, "_mt", sep = "")
 }
 
-multi_object_list<-list()
-list_of_names<-names(all_data.files)
-list_of_names
-
 
 # Create multi_object_list
 create_multi_object_list<-function(x){
@@ -97,9 +93,7 @@ create_multi_object_list<-function(x){
 }
 
 multi_object_list<-lapply(1:length(all_data.files), function(x) create_multi_object_list(all_data.files[x]))
-names(multi_object_list)
-names(multi_object_list)<-list_of_names
-multi_object_list
+names(multi_object_list)<-names(all_data.files)
 
 genes.use<-c()
 for (i in 1:length(multi_object_list)){
@@ -154,7 +148,7 @@ for(resolution in resolution_list){
   TSNEPlot(integrated_dba, do.label = TRUE, group.by = "sample", colors.use = my_palette, label.size = 10)
   dev.off()
 
-  saveRDS(integrated_dba, file = paste(output_prefix, "_dim", max_pcs, "res", my_resolution, "_tsne.rds", sep = ""))
+  saveRDS(integrated_dba, file = paste(output_prefix, "_dim", max_pcs, "res", resolution, "_tsne.rds", sep = ""))
   
   # Tabulate data -----------------------------------------------------------
   
