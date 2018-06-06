@@ -7,7 +7,7 @@ ipak <- function(pkg){
   sapply(pkg, library, character.only = TRUE)
 }
 
-packages<-c("Seurat", "dplyr", "colorRamps")
+packages<-c("Seurat", "dplyr", "colorRamps", "ggplot2")
 
 # Load libraries
 ipak(packages)
