@@ -135,12 +135,12 @@ if(Run_mito_filter == TRUE){
 
 
 # Run PCA -----------------------------------------------------------------
-
-plot_title<-paste(output_prefix, "dim",max_pcs, sep = "")
 my_object<-RunPCA(my_object, pc.genes = my_object@var.genes, pcs.compute = max_pcs, do.print = TRUE, pcs.print = 1:5, genes.print = 5)
 
+plot_title<-paste(output_prefix, "dim", max_pcs, sep = "")
+
 PrintPCA(my_object, pcs.print = 1:5, genes.print = 5, use.full = FALSE) #Set use.full to TRUE to see projected PCA
-VizPCA(my_object, pcs.use = 1:5, use.full = FALSE)
+VizPCA(my_object, pcs.use = 1:5, use.full = FALSE, font.size = 1)
 PCAPlot(my_object, dim.1 = 1, dim.2 = 2, use.full = FALSE)
 PCHeatmap(my_object, pc.use = 1:10, cells.use = 500, do.balanced = TRUE, label.columns = FALSE, use.full = FALSE, do.return=TRUE)
 
@@ -150,12 +150,18 @@ png(paste(output_prefix,"dim",max_pcs, "_PCAPlot.png", sep = ""), width = 800, h
 plot(my_plot)
 dev.off()
 
-png(paste(output_prefix, "dim",max_pcs, "_VizPCA.png", sep = ""), width = 800, height = 800)
-VizPCA(my_object, pcs.use = 1:5, use.full = FALSE)
+VizPCA(my_object, pcs.use = 1:5, use.full = FALSE, font.size = 1.5)
+png(paste(output_prefix, "dim",max_pcs, "_VizPCA.png", sep = ""), width = 800, height = 1400)
+par(mar=c(5,10,5,5))
+VizPCA(my_object, pcs.use = 1:5, use.full = FALSE, font.size = 1.5)
 dev.off()
-png(paste(output_prefix,"dim",max_pcs, "_PCAHeatmap.png", sep = ""), width = 800, height = 800)
-PCHeatmap(my_object, pc.use = 1:10, cells.use = 500, do.balanced = TRUE, label.columns = FALSE, use.full = FALSE, do.return=TRUE)
+PCHeatmap(my_object, pc.use = 1:10, cells.use = 500, do.balanced = TRUE, label.columns = FALSE, use.full = FALSE, do.return=FALSE)
+png(paste(output_prefix,"dim",max_pcs, "_PCAHeatmap.png", sep = ""), width = 800, height = 1400)
+par(mar=c(5,5,5,10))
+PCHeatmap(my_object, pc.use = 1:10, cells.use = 500, do.balanced = TRUE, label.columns = FALSE, use.full = FALSE, do.return = FALSE)
 dev.off()
+par(mar=c(0,0,0,0))
+
 
 
 
