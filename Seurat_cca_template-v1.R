@@ -23,7 +23,7 @@ ProjectName<-"Stjude"
 genome<- "mm10"
 Run_mito_filter = FALSE
 output_prefix <-"20180601_Stjude_cca"
-max_pcs <-25
+max_pcs <-19
 resolution_list <-c(0.6, 0.8, 1.0, 1.2, 1.5, 2.0, 2.5)
 # resolution_list<-0.6
 # Define basic color palette ----------------------------------------------
@@ -123,7 +123,7 @@ integrated_object<-RunMultiCCA(multi_object_list, genes.use = genes.use, num.ccs
 p1<-DimPlot(integrated_object, reduction.use="cca", group.by="orig.ident", do.return=TRUE)
 p2<-VlnPlot(integrated_object, features.plot="CC1", group.by = "orig.ident", do.return = TRUE)
 
-png(filename = paste(output_prefix,"_dim",max_pcs, "_CCFit.png", sep = ""), height = 2400, width = 800)
+png(filename = paste(output_prefix,"_dim",max_pcs, "_CCFit.png", sep = ""), height = 800, width = 800)
 plot_grid(p1, p2)
 dev.off()
 
@@ -131,11 +131,10 @@ png(filename = paste(output_prefix,"_dim",max_pcs, "_BicorPlot.png", sep = ""), 
 MetageneBicorPlot(integrated_object, grouping.var = "sample", dims.eval = 1:max_pcs)
 dev.off()
 
-png(filename = paste(output_prefix,"_dim",max_pcs, "_BicorPlot.png", sep = ""), height = 2400, width = 800)
+png(filename = paste(output_prefix,"_dim",max_pcs, "_Heatmap.png", sep = ""), height = 2400, width = 800)
 DimHeatmap(integrated_object, reduction.type = "cca", cells.use = 500, dim.use = 1:max_pcs, do.balanced = TRUE)
 dev.off()
 
-MetageneBicorPlot(integrated_object, grouping.var = "sample", dims.eval = 1:11)
 
 integrated_object<-CalcVarExpRatio(integrated_object, reduction.type = "pca", grouping.var = "sample", dims.use = 1:max_pcs)
 integrated_object<-SubsetData(integrated_object, subset.name = "var.ratio.pca", accept.low = 0.5)
