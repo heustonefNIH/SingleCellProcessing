@@ -18,13 +18,14 @@ all_data.files <- c(WTLSK = "WT_LSK",
                     HETLSK = "HET_LSK",
                     WTB220 = "WT_B220",
                     HETB220 = "HET_B220")
+
 ProjectName<-"Stjude"
 genome<- "mm10"
 Run_mito_filter = FALSE
 output_prefix <-"20180601_Stjude_cca"
-max_pcs <-21
+max_pcs <-25
 resolution_list <-c(0.6, 0.8, 1.0, 1.2, 1.5, 2.0, 2.5)
-#resolution_list<-0.6
+# resolution_list<-0.6
 # Define basic color palette ----------------------------------------------
 
 my_palette<-c("#cb4bbe",
@@ -63,14 +64,15 @@ if(Run_mito_filter == TRUE){
   ProjectName<-paste(ProjectName, "_mt", sep = "")
 }
 
-
+multi_object_list<-list()
 # Create multi_object_list
 create_multi_object_list<-function(x){
-  x[[1]]<-paste(x[[1]], "/outs/filtered_gene_bc_matrices/",genome,"/", sep="")
-  print(x)
-  my_object.data<-Read10X({names(x) = x[[1]]})
+  cellranger_files<-paste(x[[1]], "/outs/filtered_gene_bc_matrices/",genome,"/", sep="")
+  names(cellranger_files)<-names(x)
+  print(cellranger_files)
+  my_object.data<-Read10X(cellranger_files)
   my_object<- CreateSeuratObject(raw.data = my_object.data, min.cells = 3, min.genes = 200, project = ProjectName)
-
+  print(head(my_object@cell.names))
   # Apply mito.filter if applicable
   if(Run_mito_filter == TRUE){
     mito.genes<-grep(pattern = "^MT-", x = rownames(x=my_object@data), value = TRUE, ignore.case = TRUE)
@@ -91,7 +93,6 @@ create_multi_object_list<-function(x){
   my_object@meta.data$sample<-names(x)
   multi_object_list[[names(x)]]<-my_object
 }
-
 multi_object_list<-lapply(1:length(all_data.files), function(x) create_multi_object_list(all_data.files[x]))
 names(multi_object_list)<-names(all_data.files)
 
@@ -99,9 +100,11 @@ genes.use<-c()
 for (i in 1:length(multi_object_list)){
   print(i)
   if(length(multi_object_list[[i]]@var.genes)>=1000){
-  genes.use<-c(genes.use, head(rownames(multi_object_list[[i]]@hvg.info), 1000))
+    genes.use<-c(genes.use, head(rownames(multi_object_list[[i]]@hvg.info), 1000))
+    print(length(paste("Using", genes.use, "genes to align subspace", sep = " ")))
   } else {
     genes.use<-c(genes.use, head(rownames(multi_object_list[[i]]@hvg.info)))
+    print(length(paste("Using", genes.use, "genes to align subspace", sep = " ")))
   }
 }
 
@@ -113,19 +116,32 @@ head(genes.use)
 # Run multi-set CCA
 
 
-# Iterate across multiple resolutions -------------------------------------
-
+# Align subspace ----------------------------------------------------------
 
 integrated_object<-RunMultiCCA(multi_object_list, genes.use = genes.use, num.ccs = max_pcs)
+
+p1<-DimPlot(integrated_object, reduction.use="cca", group.by="orig.ident", do.return=TRUE)
+p2<-VlnPlot(integrated_object, features.plot="CC1", group.by = "orig.ident", do.return = TRUE)
+
+png(filename = paste(output_prefix,"_dim",max_pcs, "_CCFit.png", sep = ""), height = 2400, width = 800)
+plot_grid(p1, p2)
+dev.off()
 
 png(filename = paste(output_prefix,"_dim",max_pcs, "_BicorPlot.png", sep = ""), height = 800, width = 800)
 MetageneBicorPlot(integrated_object, grouping.var = "sample", dims.eval = 1:max_pcs)
 dev.off()
 
+png(filename = paste(output_prefix,"_dim",max_pcs, "_BicorPlot.png", sep = ""), height = 2400, width = 800)
+DimHeatmap(integrated_object, reduction.type = "cca", cells.use = 500, dim.use = 1:max_pcs, do.balanced = TRUE)
+dev.off()
+
+MetageneBicorPlot(integrated_object, grouping.var = "sample", dims.eval = 1:11)
+
 integrated_object<-CalcVarExpRatio(integrated_object, reduction.type = "pca", grouping.var = "sample", dims.use = 1:max_pcs)
 integrated_object<-SubsetData(integrated_object, subset.name = "var.ratio.pca", accept.low = 0.5)
 integrated_object<-AlignSubspace(integrated_object, reduction.type = "cca", grouping.var = "sample", dims.align = 1:max_pcs)
 
+# Iterate across multiple resolutions -------------------------------------
   
 for(resolution in resolution_list){
   integrated_object<-FindClusters(integrated_object, reduction.type = "cca.aligned", dims.use = 1:max_pcs, save.SNN = T, resolution = resolution)
@@ -139,16 +155,29 @@ for(resolution in resolution_list){
   new_length
   my_palette<-c(my_palette, primary.colors(new_length))
   
-
-  png(filename = paste(output_prefix, "dim",max_pcs, "res",resolution,"_tsne.png", sep = ""), width = 800, height = 800)
-  TSNEPlot(integrated_dba, do.label = TRUE, colors.use = my_palette, label.size = 10)
+  plot_title<-paste(output_prefix, "dim",max_pcs, "res",resolution, sep = "")
+  my_tsne_plot<-TSNEPlot(my_object, colors.use = my_palette, do.return=TRUE)
+  my_tsne_plot<-my_tsne_plot + ggtitle(plot_title)
+  png(paste(output_prefix, "dim",max_pcs, "res",resolution,"_tsne.png", sep = ""), width = 800, height = 800)
+  try(plot(my_tsne_plot))
+  dev.off()
+  my_tsne_plot<-TSNEPlot(my_object, colors.use = my_palette, do.label = TRUE, label.size = 10, do.return=TRUE)
+  my_tsne_plot<-my_tsne_plot + ggtitle(plot_title)
+  png(paste(output_prefix, "dim",max_pcs, "res",resolution,"_tsne-Labeled.png", sep = ""), width = 800, height = 800)
+  try(plot(my_tsne_plot))
+  dev.off()
+  my_tsne_plot<-TSNEPlot(my_object, colors.use = my_palette, group.by = "orig.ident", do.return=TRUE)
+  my_tsne_plot<-my_tsne_plot + ggtitle(plot_title)
+  png(paste(output_prefix, "dim",max_pcs, "res",resolution,"_tsnebyID.png", sep = ""), width = 800, height = 800)
+  try(plot(my_tsne_plot))
+  dev.off()
+  my_tsne_plot<-TSNEPlot(my_object, colors.use = my_palette, do.label = TRUE, label.size = 10, group.by = "orig.ident", do.return=TRUE)
+  my_tsne_plot<-my_tsne_plot + ggtitle(plot_title)
+  png(paste(output_prefix, "dim",max_pcs, "res",resolution,"_tsnebyID-Labeled.png", sep = ""), width = 800, height = 800)
+  try(plot(my_tsne_plot))
   dev.off()
 
-  png(filename = paste(output_prefix, "dim",max_pcs, "res",resolution,"_tsne-Labeled.png", sep = ""), width = 800, height = 800)
-  TSNEPlot(integrated_dba, do.label = TRUE, group.by = "sample", colors.use = my_palette, label.size = 10)
-  dev.off()
-
-  saveRDS(integrated_dba, file = paste(output_prefix, "_dim", max_pcs, "res", resolution, "_tsne.rds", sep = ""))
+  saveRDS(integrated_dba, file = paste(output_prefix, "dim", max_pcs, "res", resolution, "_tsne.rds", sep = ""))
   
   # Tabulate data -----------------------------------------------------------
   
@@ -182,35 +211,4 @@ for(resolution in resolution_list){
 
 
 q()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
