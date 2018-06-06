@@ -86,7 +86,7 @@ repair_output<-function(x){
   
   #Average expression of each gene in each cluster
   avgexp<-AverageExpression(my_object)
-  write.table(table(my_object@ident), file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_AvgXprsn.txt", sep = ""), row.names = TRUE, quote = FALSE, sep = "\t")
+  write.table(table(my_object@ident), file = paste(output_prefix, "_AvgXprsn.txt", sep = ""), row.names = TRUE, quote = FALSE, sep = "\t")
 
 }
 
