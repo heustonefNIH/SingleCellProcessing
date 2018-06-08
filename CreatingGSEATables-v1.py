@@ -18,7 +18,7 @@ def main (argv):
                 clust = pd.read_table(os.path.join(argv[1],file))
                 outname = re.sub(".txt$", "", file)
                 print ("working on ", outname)
-                clust.iloc[:,0].head()
+                clust.index = clust.index.str.upper()
                 total_clust_count = len(clust.columns.values)
                 clust_names = clust.columns.values
                 clust.reset_index(inplace=True)
