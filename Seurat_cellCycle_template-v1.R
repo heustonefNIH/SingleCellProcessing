@@ -7,7 +7,7 @@ ipak <- function(pkg){
   sapply(pkg, library, character.only = TRUE)
 }
 
-packages<-c("Seurat", "dplyr", "colorRamps")
+packages<-c("Seurat", "dplyr", "colorRamps", "tools")
 
 # Load libraries
 ipak(packages)
@@ -15,52 +15,82 @@ ipak(packages)
 
 # Define variables --------------------------------------------------------
 
-all_data.files <- c("LSK" = "LSKm2/outs/filtered_gene_bc_matrices/mm10/",
-                    "CMP" = "CMPm2/outs/filtered_gene_bc_matrices/mm10/",
-                    "MEP" = "MEPm/outs/filtered_gene_bc_matrices/mm10/",
-                    "GMP" = "GMPm/outs/filtered_gene_bc_matrices/mm10/")
-ProjectName<-"msAggr_ccycle"
+# all_data.files <- c(LSK = "LSKm2",
+#                     CMP = "CMPm2",
+#                     MEP = "MEPm",
+#                     GMP = "GMPm")
+all_data.files <- c(MEP = "MEPm")
+ProjectName<-"msAggr"
 genome<- "mm10"
-output_prefix <-"20180509_msAggr"
-max_pcs <-10
-# resolution_list <-c(0.6, 0.8, 1.0, 1.5, 2.0, 2.5)
-resolution_list <-0.6
-my_palette<-c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99', "gray40", "black","maroon3", "tan4", "paleturquoise4", "mediumorchid", "moccasin", "lemonchiffon", "darkslategrey", "lightsalmon1", "plum1", "seagreen", "firebrick4", "khaki2", primary.colors(80))
+Run_mito_filter = FALSE
+output_prefix <-"test"
+max_pcs <-5
+# resolution_list <-c(0.6, 0.8, 1.0, 1.2, 1.5, 2.0, 2.5)
+resolution_list<-0.6
+# Define basic color palette ----------------------------------------------
+
+my_palette<-c("#cb4bbe",
+                 "lightskyblue",
+                 "grey37",
+                 "#53ba48",
+                 "moccasin",
+                 "#dcca44",
+                 "#502d70",
+                 "#afd671",
+                 "#cb4471",
+                 "#69da99",
+                 "#d44732",
+                 "#6fd3cf",
+                 "#5d2539",
+                 "#cfd0a0",
+                 "blue",
+                 "#d2883b",
+                 "#6793c0",
+                 "#898938",
+                 "#c98ac2",
+                 "yellow",
+                 "#c4c0cc",
+                 "#7d3d23",
+                 "#00a5ff",
+                 "#d68d7a",
+                 "#a2c1a3")
+
 
 # Define common objects ---------------------------------------------------
 
-color_pallet<-c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99', "gray40", "black","maroon3", "tan4", "paleturquoise4", "mediumorchid", "moccasin", "lemonchiffon", "darkslategrey", "lightsalmon1", "plum1", "seagreen", "firebrick4", "khaki2", "darkorange3", "darksalmon", "darkslategray3", "cadetblue", "blue2", "aquamarine4", "antiquewhite2", "aliceblue", "cornflowerblue", "chartreuse")
-
 my_transparent_dot<-rgb(0,0,0, alpha = 0)
 
-s.genes<-cc.genes$s.genes
-g2m.genes<-cc.genes$g2m.genes
+if(genome != "GRCh38"){
+  proper=function(x) paste0(toupper(substr(x, 1, 1)), tolower(substring(x, 2)))
+  s.genes<-proper(cc.genes$s.genes)
+  g2m.genes<-proper(cc.genes$g2m.genes)
+} else{
+  s.genes<-cc.genes$s.genes
+  g2m.genes<-cc.genes$g2m.genes
+}
+
 
 # Import data -------------------------------------------------------------
 
-my_object.data<-Read10X(all_data.files)
+read_10XGenomics_data<-function(x){
+  x[[1]]<-paste(x[[1]], "/outs/filtered_gene_bc_matrices/",genome,"/", sep="")
+}
+data_files.list<-as.character(lapply(1:length(all_data.files), function(x) read_10XGenomics_data(all_data.files[x])))
+names(data_files.list)<-names(all_data.files)
+
+my_object.data<-Read10X(data_files.list)
+my_object.data
 my_object<- CreateSeuratObject(raw.data = my_object.data, min.cells = 3, min.genes = 200, project = ProjectName)
 my_object<-NormalizeData(my_object, normalization.method = "LogNormalize", scale.factor = 10000)
 my_object<-FindVariableGenes(my_object,mean.function = ExpMean, dispersion.function = LogVMR, x.low.cutoff = 0.0125, x.high.cutoff = 3, y.cutoff = 0.5)
 my_object<-ScaleData(my_object, vars.to.regress = "nUMI")
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 # Cell cycle analysis -------------------------------------------------------
 
-
-
+cc_my_object<-CellCycleScoring(my_object, s.genes = s.genes, g2m.genes = g2m.genes, set.ident = FALSE)
+cc_my_object<-RunPCA(cc_my_object, pc.genes = c(s.genes, g2m.genes), do.print = TRUE)
+PCAPlot(cc_my_object, group.by = "Phase")
 
 # Shows cycle of genes in each cluster
 dim14cycle<-CellCycleScoring(dim14, s.genes = s.genes, g2m.genes = g2m.genes, set.ident = F)
