@@ -7,7 +7,7 @@ ipak <- function(pkg){
   sapply(pkg, library, character.only = TRUE)
 }
 
-packages<-c("Seurat", "dplyr", "colorRamps", "monocle", "stringr", "plyr", "dplyr")
+packages<-c("Seurat", "dplyr", "colorRamps", "monocle", "stringr", "plyr")
 
 # Load libraries
 ipak(packages)
@@ -36,7 +36,7 @@ output_prefix<-gsub(x=seurat_object_filename, pattern = ".rds", replacement = ""
 output_prefix<-gsub(x = output_prefix, pattern =  "_tsne", replacement =  "")
 
 # Load Seurat object as CDS -----------------------------------------------
-  
+
 if(grep(x = seurat_object_filename, pattern = "rds$", ignore.case = T)){
   seurat_object<-readRDS(seurat_object_filename)
 } else if (grep(x = seurat_object_filename, pattern = "Robj$", ignore.case = T)){
