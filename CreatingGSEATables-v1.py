@@ -16,7 +16,7 @@ def create_system_command(file_directory, gct_file, cls_file, output_label, numb
 	
 	for current_cluster in range(0, number_of_clusters):
 		current_cluster = str(current_cluster)
-		system_command = "".join(["java -cp ./gsea-3.0.jar -Xms512m -Xmx8164m xtools.gsea.Gsea -res ./",gct_file," -cls ./",cls_file,"#",current_cluster,"_versus_REST -gmx msigdb.v6.1.symbols.gmt -collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute phenotype -rnd_type no_balance -scoring_scheme weighted -rpt_label C",current_cluster,"_vs_REST -metric log2_Ratio_of_Classes -sort real -order descending -create_gcts false -create_svgs false -include_only_symbols true -make_sets true -median false -num 100 -plot_top_x 20 -rnd_seed timestamp -save_rnd_lists false -set_max 500 -set_min 15 -zip_report false -out ./ -gui false"])
+		system_command = "".join(["java -cp ./gsea-3.0.jar -Xms512m -Xmx8164m xtools.gsea.Gsea -res ./",gct_file," -cls ./",cls_file,"#",current_cluster,"_versus_REST -gmx msigdb.v6.1.symbols.gmt -collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute phenotype -rnd_type no_balance -scoring_scheme weighted -rpt_label C",output_label,"_",current_cluster,"_vs_REST -metric log2_Ratio_of_Classes -sort real -order descending -create_gcts false -create_svgs false -include_only_symbols true -make_sets true -median false -num 100 -plot_top_x 20 -rnd_seed timestamp -save_rnd_lists false -set_max 500 -set_min 15 -zip_report false -out ./ -gui false"])
 		with open("".join([file_directory, output_label, "_GSEA_submission.swarm"]), "a") as f:
 			f.write(system_command)
 			f.write("\n")
@@ -45,7 +45,7 @@ def main (argv):
 				clust2.columns.values[0]="NAME"
 				clust2.columns.values[1]="Description"
 				gct_file = "".join([argv[1], outname, ".gct"])
-				gct_line = "\t".join([str(len(clust2.index)), str(len(clust2.columns.values))])
+				gct_line = "\t".join([str(len(clust2.index)), str(total_clust_count)])
 				with open(gct_file, "a") as f:
 					f.write("#1.2\n")
 					f.write(gct_line)
