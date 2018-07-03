@@ -22,9 +22,13 @@ ipak(packages)
 
 
 use.components<-NULL
-output_prefix<-"MEPm_supat_v1"
-data.dir<-"~/Desktop/10XGenomicsData/MEPm"
-project.folder<-"MEPm_sptSpring_v1"
+output_prefix<-"msAggr_test_supat_v1"
+data.dir<-c(LSK = "~/Desktop/10XGenomicsData/LSKm2", CMP = "~/Desktop/10XGenomicsData/CMPm2", MEP = "~/Desktop/10XGenomicsData/MEPm", GMP = "~/Desktop/10XGenomicsData/GMPm")
+
+
+
+
+project.folder<-"msAggr_test_sptSpring_v1"
 gene_list <-NULL
 max_dims<-12
 n.max.cluster<-NULL

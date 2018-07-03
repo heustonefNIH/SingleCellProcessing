@@ -203,7 +203,7 @@ for(resolution in resolution_list){
   
   #Average expression of each gene in each cluster
   avgexp<-AverageExpression(integrated_dba)
-  write.table(table(integrated_dba@ident), file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_AvgXprsn.txt", sep = ""), row.names = TRUE, quote = FALSE, sep = "\t")
+  write.table(avgexp, file = paste(output_prefix, "dim",max_pcs, "res",resolution,"_AvgXprsn.txt", sep = ""), row.names = TRUE, quote = FALSE, sep = "\t")
 
 
 }

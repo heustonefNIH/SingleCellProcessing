@@ -1,5 +1,18 @@
+# Define variables --------------------------------------------------------
+
+seurat_object_filename<-"20180601_bmDBA_cca_dim21res1_tsne.rds"
+perform_expression_filtering <- TRUE
+color_by_seurat_res = TRUE
+order_by_seurat_varGenes = FALSE
+UMI_bounded_filtering<- "upper" #Can be "upper", "lower", "both", "none" (or NULL)
+cca_variables<- "~nGene + nUMI + orig.ident"
+num_dim <- 21
+max_components <- 2
+
 # Load libraries and user functions ----------------------------------------------------------
 
+library(devtools)
+withr::with_libpaths(new = "./", install_github("efheuston/MyPlotTrajectoryPackage", "https://github.com/efheuston/MyPlotTrajectoryPackage.git"))
 # install_github("efheuston/MyPlotTrajectoryPackage")
 ipak <- function(pkg){
   new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
@@ -8,23 +21,14 @@ ipak <- function(pkg){
   sapply(pkg, library, character.only = TRUE)
 }
 
-packages<-c("Seurat", "plyr", "dplyr", "colorRamps", "monocle", "stringr", "MyPlotTrajectoryPackage")
+packages<-c("Seurat", "plyr", "dplyr", "colorRamps", "monocle", "stringr")
+
 
 # Load libraries
 ipak(packages)
+library(MyPlotTrajectoryPackage, lib.loc = "./")
 
 ###Concerned about importing nomalized data incorrectly from Seurat object
-
-# Define variables --------------------------------------------------------
-
-seurat_object_filename<-"20180601_bmDBA_cca_dim21res2.5_tsne.rds"
-perform_expression_filtering <- TRUE
-color_by_seurat_res = TRUE
-order_by_seurat_varGenes = FALSE
-UMI_bounded_filtering<- "upper" #Can be "upper", "lower", "both", "none" (or NULL)
-cca_variables<- "~nGene + nUMI + orig.ident"
-num_dim <- 21
-max_components <- 2
 
 # Define script-specific functions ----------------------------------------
 
@@ -36,21 +40,60 @@ png_plotFunction<-function(plot_to_make = x, filename = y, height = 800, width =
 }
 
 # define function to cycle through multiple seurat-defined resolutions (if applicable)
-res_cycle_plot_clusters<-function(x, y){
+res_cycle_plot_clusters<-function(x, y, z){
   if(y == "cluster"){
-  png_plotFunction(plot_cell_clusters(cca_object, 1, 2, color = x), 
+  png_plotFunction(my_plot_cell_clusters(z, 1, 2, color = x, point_colors = my_palette), 
                    filename = paste(output_prefix, "_clstr-", x,".png", sep = ""),
                    height = 1600, 
                    width = 1600)
-  png_plotFunction(plot_cell_clusters(cca_object, 1, 2, color = x) + 
+  png_plotFunction(my_plot_cell_clusters(z, 1, 2, color = x, point_colors = my_palette) + 
                      facet_wrap(x), 
                    filename = paste(paste(output_prefix, "_clstr-", x,"FACET.png", sep = "")),
                    height = 1600, 
                    width = 1600)
+  png_plotFunction(plot_cell_clusters(monocle_object, 1, 2, color = "orig.ident") + 
+                     facet_wrap(~x), 
+                   filename = paste(output_prefix, "_clstr-orig.identFACET.png", sep = ""),
+                   height = 1600, 
+                   width = 1600)
+  
   }
-  if(y == "trajectory")
-    png_plotFunction()
-                   }
+  if(y == "trajectory"){
+    png_plotFunction(my_plot_cell_trajectory(monocle_object, 
+                       color_by = x, 
+                       cell_size = 0.5, 
+                       point_colors = my_palette), 
+                     filename = paste(output_prefix, "_trajectory-", x,".png", sep = ""), 
+                     height = 1600, 
+                     width = 1600)
+    png_plotFunction(my_plot_cell_trajectory(monocle_object, 
+                       color_by = x, 
+                       cell_size = 0.5, 
+                       point_colors = my_palette) + 
+                       facet_wrap(~x),
+                     filename = paste(output_prefix, "_trajectory-", x,"FACET.png", sep = ""), 
+                     height = 1600, 
+                     width = 1600)
+    png_plotFunction(my_plot_cell_trajectory(monocle_object, 
+                       color_by = x, 
+                       cell_size = 0.5, 
+                       point_colors = my_palette) +
+                       facet_wrap(~orig.ident), 
+                     filename = paste(output_prefix, "_trajectory-", x,"FACETorig.ident.png", sep = ""), 
+                     height = 1600, 
+                     width = 1600)
+    png_plotFunction(my_plot_cell_trajectory(monocle_object, 
+                       color_by = "orig.ident", 
+                       cell_size = 0.5, 
+                       point_colors = my_palette) + 
+                       facet_wrap(~x),
+                     filename = paste(output_prefix, "_trajectory-orig.identFACET", x,".png", sep = ""), 
+                     height = 1600, 
+                     width = 1600)
+
+  }
+}
+
 
 output_prefix<-gsub(x=seurat_object_filename, pattern = ".rds", replacement = "")
 output_prefix<-gsub(x = output_prefix, pattern =  "_tsne", replacement =  "")
@@ -134,36 +177,34 @@ upper_bound<-10^(mean(log10(pData(monocle_object)$Total_nUMI)) + 2*sd(log10(pDat
 
 # Plot UMI distributions and filter --------------------------------------------------
 
-png_plotFunction(qplot(Total_UMIs, data = pData(cca_object), color = orig.ident, geom = "density") + 
+png_plotFunction(qplot(Total_UMIs, data = pData(monocle_object), color = orig.ident, geom = "density") + 
                    geom_vline(xintercept = upper_bound) + 
                    geom_vline(xintercept = lower_bound),
                  filename = paste(output_prefix, "_nUMI_2SD_byID.png", sep = ""))
 
-png_plotFunction(qplot(res.0.6, data = pData(cca_object), geom = "density") + 
+png_plotFunction(qplot(res.0.6, data = pData(monocle_object), geom = "density") + 
                    geom_vline(xintercept = upper_bound) + 
                    geom_vline(xintercept = lower_bound),
                  filename = paste(output_prefix, "_nUMI_2SD_byCluster.png", sep = ""))
 
+
 if(grep("upper", UMI_bounded_filtering, ignore.case = TRUE)){
   monocle_object<-monocle_object[,pData(monocle_object)$Total_nUMI < upper_bound]
-  monocle_object<-detectGenes(monocle_object, min_expr = 0.1)
-} else {
-  if(grep("both", UMI_bounded_filtering, ignore.case = TRUE)){
+} else if(grep("both", UMI_bounded_filtering, ignore.case = TRUE)){
   monocle_object<-monocle_object[,pData(monocle_object)$Total_nUMI < upper_bound & pData(monocle_object)$Total_nUMI > lower_bound]
-  monocle_object<-detectGenes(monocle_object, min_expr = 0.1)
-  }
-} else {
-  if(UMI_bounded_filtering = NULL | UMI_bounded_filtering == "none"){
+} else if(is.null(UMI_bounded_filtering) | UMI_bounded_filtering == "none"){
   print("Not filtering based on UMI counts")
-  monocle_object<-detectGenes(monocle_object, min_expr = 0.1)
-  }
+} else {
+  print("No boundries detected")
 }
+monocle_object<-detectGenes(monocle_object, min_expr = 0.1)
+
 
 
 
 # Cluster cells without marker genes --------------------------------------
 
-monocle_object<-detectGenes(monocle_object)
+# monocle_object<-detectGenes(monocle_object)
 disp_table<-dispersionTable(monocle_object)
 
 monocle_clustering_genes<-subset(disp_table, mean_expression >= 0.1)
@@ -171,10 +212,6 @@ monocle_object<-setOrderingFilter(monocle_object, ordering_genes = monocle_clust
 
 png_plotFunction(plot_ordering_genes(monocle_object), filename = paste(output_prefix, "_PlotOrderingGenes.png", sep = ""))
 png_plotFunction(plot_pc_variance_explained(monocle_object, return_all = FALSE), filename = paste(output_prefix, "_PCVarXplained.png", sep = ""))
-
-savehistory(file=paste(output_prefix, ".Rhistory", sep = ""))
-save.image(file=paste(output_prefix, ".RData", sep = ""))
-
 
 # Perform clustering ------------------------------------------------------
 
@@ -186,20 +223,14 @@ monocle_object<-reduceDimension(monocle_object,
                                 verbose = TRUE)
 monocle_object<-clusterCells(monocle_object)
 
-png_plotFunction(plot_cell_clusters(cca_object, 1, 2, color = "orig.ident") + 
-                   facet_wrap(~res.0.6), 
-                 filename = paste(output_prefix, "_clstr-orig.identFACET.png", sep = ""),
-                 height = 1600, 
-                 width = 1600)
-
-png_plotFunction(plot_cell_clusters(cca_object, 1, 2, color = "orig.ident"), 
+png_plotFunction(plot_cell_clusters(monocle_object, 1, 2, color = "orig.ident"), 
                  filename = paste(output_prefix, "_clstr-orig.ident.png", sep = ""),
                  height = 1600, 
                  width = 1600)
 
 
 if(color_by_seurat_res = TRUE){
-  lapply(seurat_res[1:length(seurat_res)], res_cycle_plot_clusters )
+  lapply(seurat_res[1:length(seurat_res)], "cluster" , monocle_object, res_cycle_plot_clusters )
 }
 savehistory(file=paste(output_prefix, ".Rhistory", sep = ""))
 save.image(file=paste(output_prefix, ".RData", sep = ""))
@@ -221,29 +252,34 @@ monocle_object<-orderCells(monocle_object)
 # Plot cell trajectories --------------------------------------------------
 
 try(
+  png_plotFunction(my_plot_cell_trajectory(monocle_object, 
+                                           cell_size = 0.5, 
+                                           point_colors = my_palette)), 
+                                          filename = paste(output_prefix, "_trajectory.png", sep = ""))
+try(
+  png_plotFunction(my_plot_cell_trajectory(monocle_object, 
+                                           color_by = "orig.ident", 
+                                           cell_size = 0.5, 
+                                           point_colors = my_palette), 
+                                          filename = paste(output_prefix, "_trajectory-orig.ident.png", sep = ""))
+                                      )
+try(
+  png_plotFunction(my_plot_cell_trajectory(monocle_object, 
+                                           color_by = "orig.ident", 
+                                           cell_size = 0.5, 
+                                           point_colors = my_palette) + 
+                                           facet_wrap(~orig.ident), 
+                                          filename = paste(output_prefix, "_trajectory-orig.identFACET.png", sep = ""))
+                                      )
+try(
+  if(color_by_seurat_res = TRUE){
+    lapply(seurat_res[1:length(seurat_res)], "trajectory", monocle_object, res_cycle_plot_clusters )
+  }
 )
+saveRDS(monocle_object, file = paste(output_prefix, "_UnsupClustMonocle.rds", sep = ""))
+savehistory(file=paste(output_prefix, ".Rhistory", sep = ""))
+save.image(file=paste(output_prefix, ".RData", sep = ""))
 
-png(filename="plotCellTrajectory_noGMstate-norm.png", width=800, height = 800)
-my_plot_cell_trajectory(cca_monocleOrdered, cell_size = 0.5, point_colors = my_palette)
-dev.off()
-png(filename="plotCellTrajectory_noGMstate-res.png", width=800, height = 800)
-my_plot_cell_trajectory(cca_monocleOrdered, color_by = "res.0.6", cell_size = 0.5, point_colors = my_palette)
-dev.off()
-png(filename="plotCellTrajectory_noGMstate-orig.ident.png", width=800, height = 800)
-my_plot_cell_trajectory(cca_monocleOrdered, color_by = "orig.ident", cell_size = 0.5, point_colors = my_palette)
-dev.off()
-png(filename="plotCellTrajectory_noGMstate-orig.identFACET.png", width=800, height = 800)
-my_plot_cell_trajectory(cca_monocleOrdered, color_by = "orig.ident", cell_size = 0.5, point_colors = my_palette)+facet_wrap(~orig.ident)
-dev.off()
-png(filename="plotCellTrajectory_noGMstate-resFACET.png", width=800, height = 800)
-my_plot_cell_trajectory(cca_monocleOrdered, color_by = "res.0.6", cell_size = 0.5, point_colors = my_palette)+facet_wrap(~res.0.6)
-dev.off()
-png(filename="plotCellTrajectory_noGMstate-resFACETorig.png", width=800, height = 800)
-my_plot_cell_trajectory(cca_monocleOrdered, color_by = "res.0.6", cell_size = 0.5, point_colors = my_palette)+facet_wrap(~orig.ident)
-dev.off()
-png(filename="plotCellTrajectory_noGMstate-orig.identFACETres.png", width=800, height = 800)
-my_plot_cell_trajectory(cca_monocleOrdered, color_by = "orig.ident", cell_size = 0.5, point_colors = my_palette)+facet_wrap(~res.0.6)
-dev.off()
 
 
 
