@@ -132,6 +132,8 @@ if(color_by_seurat_res == TRUE){
   seurat_res<-colnames(seurat_object@meta.data)[grep(x=colnames(seurat_object@meta.data), pattern = "^res")]
 }
 
+
+
 # Define base colour palette ----------------------------------------------
 
 my_palette<-c("#cb4bbe",
@@ -269,6 +271,9 @@ monocle_object<-orderCells(monocle_object)
 #   LSK_pops<-table(pData(cds)$State, pData(cds)$Type[,"LSK"])
 #   as.numeric(names(LSK_pops)[which(LSK_pops==max(LSK_pops))])
 # }
+
+
+
 # Plot cell trajectories --------------------------------------------------
 
 try(
