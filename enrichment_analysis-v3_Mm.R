@@ -68,5 +68,5 @@ enrichment_function<-function(my_folder, number_of_terms, output_name_augment){
 }
 
 
-my_folder<-list.files(path = "/Users/heustonef/Desktop/10XGenomicsData/msAggr/msAggr_dim36/",pattern="_all.txt$", full.names = T)
+my_folder<-list.files(path = "/Users/heustonef/Desktop/10XGenomicsData/msAggr/msAggr_mtdim34/",pattern="_top100.txt$", full.names = T)
 enrichment_function(my_folder, output_name_augment="", number_of_terms=100L)
