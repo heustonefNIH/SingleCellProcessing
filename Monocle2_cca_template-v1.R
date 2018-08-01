@@ -22,27 +22,28 @@ library("MyPlotTrajectoryPackage", lib.loc = "./")
 # Process commandLine input -----------------------------------------------
 
 args <- commandArgs(trailingOnly = TRUE, asValues = TRUE, 
-                    defaults = c(seurat_object_filename<-NULL,
-                                 num_dim <- NULL,
-                                 max_components <- NULL,
-                                 perform_expression_filtering <- TRUE,
+                    defaults = c(seurat_object_filename = NULL,
+                                 num_dim = NULL,
+                                 max_components = NULL,
+                                 perform_expression_filtering = TRUE,
                                  color_by_seurat_res = TRUE,
                                  order_by_seurat_varGenes = FALSE,
-                                 UMI_bounded_filtering<- "upper", #Can be "upper", "lower", "both", "none" (or NULL)
-                                 cca_variables<- "~nGene + nUMI" # "~nGene + nUMI + orig.ident"
+                                 UMI_bounded_filtering = "upper", #Can be "upper", "lower", "both", "none" (or NULL)
+                                 cca_variables = "~nGene + nUMI" # "~nGene + nUMI + orig.ident"
                     )
 )
 
-if(length(args) == 0){
-  print("Arguments: seurat_object_filename: Location/filename of Seurat object containing (minmally) all data as object of class Seurat
-                                 num_dim: Number of dimensions to use during dimensional reduction
-                                 max_components: 2 for 2D, 3 for 3D
-                                 perform_expression_filtering: Logical; filter out cells with min_expr 0.1 and expression in >=10 cells
-                                 color_by_seurat_res: = Logical; use cluster assignments from Seurat tsne obejct to color monocle plots
-                                 order_by_seurat_varGenes: CURRENTLY OUT OF ORDER!! Logical; order cells using varGenes from Seurat object
-                                 UMI_bounded_filtering: Can be \"upper\", \"lower\", \"both\", \"none\" (or NULL)
-                                 cca_variables: Metadata variables to correct for during processing [e.g., c(\"~nGene + nUMI + orig.ident\")]")
-}else if(length(args) < 6){
+if(length(unlist(args)) == 0){
+  print("Arguments:") 
+  print("seurat_object_filename: Location/filename of Seurat object containing (minmally) all data as object of class Seurat")
+  print("num_dim: Number of dimensions to use during dimensional reduction")
+  print("max_components: 2 for 2D, 3 for 3D")
+  print("perform_expression_filtering: Logical; filter out cells with min_expr 0.1 and expression in >=10 cells")
+  print("color_by_seurat_res: = Logical; use cluster assignments from Seurat tsne obejct to color monocle plots")
+  print("order_by_seurat_varGenes: CURRENTLY OUT OF ORDER!! Logical; order cells using varGenes from Seurat object")
+  print("UMI_bounded_filtering: Can be \"upper\", \"lower\", \"both\", \"none\" (or NULL)")
+  print("cca_variables: Metadata variables to correct for during processing [e.g., c(\"~nGene + nUMI + orig.ident\")]")
+}else if(length(unlist(args)) < 6){
   print("Must supply Seurat object, number of dimensions, and max components")
 }else{
   seurat_object_filename<-args$seurat_object_filename
