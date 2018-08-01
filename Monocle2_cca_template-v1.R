@@ -1,23 +1,12 @@
-# Define variables --------------------------------------------------------
-
-seurat_object_filename<-"MEPSeuratSubset_tsne.rds"
-perform_expression_filtering <- TRUE
-color_by_seurat_res = TRUE
-order_by_seurat_varGenes = FALSE
-UMI_bounded_filtering<- "upper" #Can be "upper", "lower", "both", "none" (or NULL)
-cca_variables<- "~nGene + nUMI" # "~nGene + nUMI + orig.ident"
-num_dim <- 36
-max_components <- 2
-
 # Load libraries ----------------------------------------------------------
 
 ipak <- function(pkg){
   new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
-  # if (length(new.pkg))
-  #   install.packages(new.pkg, dependencies = TRUE)
+  if (length(new.pkg))
+    install.packages(new.pkg, dependencies = TRUE)
   sapply(pkg, library, character.only = TRUE)
 }
-packages<-c("Seurat", "plyr", "dplyr", "colorRamps", "monocle", "stringr")
+packages<-c("Seurat", "plyr", "dplyr", "colorRamps", "monocle", "stringr", "R.utils")
 ipak(packages)
 
 if(!("MyPlotTrajectoryPackage" %in% installed.packages(lib.loc = "./"))){
@@ -29,6 +18,55 @@ if(!("MyPlotTrajectoryPackage" %in% installed.packages(lib.loc = "./"))){
 library("MyPlotTrajectoryPackage", lib.loc = "./")
 
 ###Concerned about importing nomalized data incorrectly from Seurat object
+
+# Process commandLine input -----------------------------------------------
+
+args <- commandArgs(trailingOnly = TRUE, asValues = TRUE, 
+                    defaults = c(seurat_object_filename<-NULL,
+                                 num_dim <- NULL,
+                                 max_components <- NULL,
+                                 perform_expression_filtering <- TRUE,
+                                 color_by_seurat_res = TRUE,
+                                 order_by_seurat_varGenes = FALSE,
+                                 UMI_bounded_filtering<- "upper", #Can be "upper", "lower", "both", "none" (or NULL)
+                                 cca_variables<- "~nGene + nUMI" # "~nGene + nUMI + orig.ident"
+                    )
+)
+
+if(length(args) == 0){
+  print("Arguments: seurat_object_filename: Location/filename of Seurat object containing (minmally) all data as object of class Seurat
+                                 num_dim: Number of dimensions to use during dimensional reduction
+                                 max_components: 2 for 2D, 3 for 3D
+                                 perform_expression_filtering: Logical; filter out cells with min_expr 0.1 and expression in >=10 cells
+                                 color_by_seurat_res: = Logical; use cluster assignments from Seurat tsne obejct to color monocle plots
+                                 order_by_seurat_varGenes: CURRENTLY OUT OF ORDER!! Logical; order cells using varGenes from Seurat object
+                                 UMI_bounded_filtering: Can be \"upper\", \"lower\", \"both\", \"none\" (or NULL)
+                                 cca_variables: Metadata variables to correct for during processing [e.g., c(\"~nGene + nUMI + orig.ident\")]")
+}else if(length(args) < 6){
+  print("Must supply Seurat object, number of dimensions, and max components")
+}else{
+  seurat_object_filename<-args$seurat_object_filename
+  num_dim<-as.integer(args$num_dim)
+  max_components<-as.integer(args$max_components)
+  perform_expression_filtering<-args$perform_expression_filtering
+  color_by_seurat_res<- args$color_by_seurat_res
+  order_by_seurat_varGenes<-args$order_by_seurat_varGenes
+  UMI_bounded_filtering<- args$UMI_bounded_filtering
+  cca_variables<-args$cca_variables
+  if(perform_expression_filtering = TRUE){
+    print("Filtering for hi/low expression")
+  }else{
+    print("Not filtering expression values")
+  }
+  if(color_by_seurat_res = TRUE){
+    print("Will colour tSNE plots using Seurat resolutions")
+  }else{
+    print("Will not colour tSNE plots using Seurat resolutions")
+  }
+  print(paste("Setting UMI bounded filtering to", UMI_bounded_filtering, sep = " "))
+  print(paste("Setting correction variables as", cca_variables, sep = " "))
+  print(paste("Will process", seurat_object_filename, "using", num_dim, "dimensions and", max_components, "components", sep = " "))
+}
 
 # Define script-specific functions ----------------------------------------
 
@@ -44,62 +82,63 @@ png_plotFunction<-function(plot_to_make = plot_to_make, filename = filename, hei
 
 cycle_plot_param<-function(plotting_function, cycle_parameter, the_object){
   # Create color pallete
-  # new_length <-0
-  # if(length(cycle_parameter) > length(my_palette)){
-  #   new_length<-length(unique(my_object@ident)) - length(my_palette)
-  # }
-  # new_length
-  # my_palette<-c(my_palette, primary.colors(new_length))
+  my_palette<-my_palette[1:25]
+  new_length <-0
+  if(length(cycle_parameter) > length(my_palette)){
+    new_length<-length(unique(my_object@ident)) - length(my_palette)
+  }
+  new_length
+  my_palette<-c(my_palette, primary.colors(new_length))
   
   if(plotting_function == "cluster"){
     png_plotFunction(my_plot_cell_clusters(the_object, 1, 2, color = cycle_parameter, point_colors = my_palette) +
-                            ggtitle(paste(output_prefix, "-", cycle_parameter, sep = "")),
+                       ggtitle(paste(output_prefix, "-", cycle_parameter, sep = "")),
                      filename = paste(output_prefix, "_clstr-", cycle_parameter,".png", sep = ""),
                      height = 1600,
                      width = 1600)
     png_plotFunction(my_plot_cell_clusters(the_object, 1, 2, color = cycle_parameter, point_colors = my_palette) +
-                            facet_wrap(as.vector(cycle_parameter)) +
-                            ggtitle(paste(paste(output_prefix, "-", cycle_parameter, sep = ""))),
+                       facet_wrap(as.vector(cycle_parameter)) +
+                       ggtitle(paste(paste(output_prefix, "-", cycle_parameter, sep = ""))),
                      filename = paste(paste(output_prefix, "_clstr-", cycle_parameter,"FACET.png", sep = "")),
                      height = 1600,
                      width = 1600)
     png_plotFunction(plot_cell_clusters(the_object, 1, 2, color = "orig.ident") +
-                            facet_wrap(as.vector(cycle_parameter)) +
-                            ggtitle(paste(output_prefix, "-orig.identFACET", sep = "")),
+                       facet_wrap(as.vector(cycle_parameter)) +
+                       ggtitle(paste(output_prefix, "-orig.identFACET", sep = "")),
                      filename = paste(output_prefix, "_clstr-orig.identFACET.png", sep = ""),
                      height = 1600,
                      width = 1600)
-
+    
   }
   if(plotting_function == "trajectory"){
     png_plotFunction(my_plot_cell_trajectory(the_object,
-                                                  color_by = cycle_parameter,
-                                                  cell_size = 1,
-                                                  point_colors = my_palette) + ggtitle(paste(output_prefix, "-", cycle_parameter, sep = "")),
+                                             color_by = cycle_parameter,
+                                             cell_size = 1,
+                                             point_colors = my_palette) + ggtitle(paste(output_prefix, "-", cycle_parameter, sep = "")),
                      filename = paste(output_prefix, "_trajectory-", cycle_parameter,".png", sep = ""),
                      height = 1600,
                      width = 1600)
     png_plotFunction(my_plot_cell_trajectory(the_object,
-                                                  color_by = cycle_parameter,
-                                                  cell_size = 1,
-                                                  point_colors = my_palette) +
-                            facet_wrap(as.vector(cycle_parameter)) + ggtitle(paste(output_prefix, "-", cycle_parameter, sep = "")),
+                                             color_by = cycle_parameter,
+                                             cell_size = 1,
+                                             point_colors = my_palette) +
+                       facet_wrap(as.vector(cycle_parameter)) + ggtitle(paste(output_prefix, "-", cycle_parameter, sep = "")),
                      filename = paste(output_prefix, "_trajectory-", cycle_parameter,"FACET.png", sep = ""),
                      height = 1600,
                      width = 1600)
     png_plotFunction(my_plot_cell_trajectory(the_object,
-                                                  color_by = cycle_parameter,
-                                                  cell_size = 1,
-                                                  point_colors = my_palette) +
-                            facet_wrap(~orig.ident) + ggtitle(paste(output_prefix, "-", cycle_parameter,"FACETorig.ident", sep = "")),
+                                             color_by = cycle_parameter,
+                                             cell_size = 1,
+                                             point_colors = my_palette) +
+                       facet_wrap(~orig.ident) + ggtitle(paste(output_prefix, "-", cycle_parameter,"FACETorig.ident", sep = "")),
                      filename = paste(output_prefix, "_trajectory-", cycle_parameter,"FACETorig.ident.png", sep = ""),
                      height = 1600,
                      width = 1600)
     png_plotFunction(my_plot_cell_trajectory(the_object,
-                                                  color_by = "orig.ident",
-                                                  cell_size = 1,
-                                                  point_colors = my_palette) +
-                            facet_wrap(as.vector(cycle_parameter)) + ggtitle(paste(output_prefix, "-orig.identFACET", cycle_parameter, sep = "")),
+                                             color_by = "orig.ident",
+                                             cell_size = 1,
+                                             point_colors = my_palette) +
+                       facet_wrap(as.vector(cycle_parameter)) + ggtitle(paste(output_prefix, "-orig.identFACET", cycle_parameter, sep = "")),
                      filename = paste(output_prefix, "_trajectory-orig.identFACET", cycle_parameter,".png", sep = ""),
                      height = 1600,
                      width = 1600)
@@ -110,7 +149,7 @@ cycle_plot_param<-function(plotting_function, cycle_parameter, the_object){
                        geom_vline(xintercept = lower_bound) +
                        ggtitle(paste(output_prefix, "-", cycle_parameter, sep = "")),
                      filename = paste(output_prefix, "_nUMI_2SD-by", cycle_parameter,".png", sep = ""))
-
+    
   }
 }
 
@@ -212,14 +251,13 @@ if(grep("upper", UMI_bounded_filtering, ignore.case = TRUE)){
 } else {
   print("No boundries detected")
 }
-monocle_object<-detectGenes(monocle_object, min_expr = 0.1)
 
+monocle_object<-detectGenes(monocle_object, min_expr = 0.1)
 
 
 
 # Cluster cells without marker genes --------------------------------------
 
-# monocle_object<-detectGenes(monocle_object)
 disp_table<-dispersionTable(monocle_object)
 
 monocle_clustering_genes<-subset(disp_table, mean_expression >= 0.1)
@@ -247,7 +285,7 @@ png_plotFunction(plot_cell_clusters(monocle_object, 1, 2, color = "orig.ident"),
 try(
   if(color_by_seurat_res == TRUE){
     lapply(seurat_res[cycle_parameter = 1:length(seurat_res)], plotting_function = "cluster", the_object = monocle_object, cycle_plot_param)
-}
+  }
 )
 
 savehistory(file=paste(output_prefix, ".Rhistory", sep = ""))
