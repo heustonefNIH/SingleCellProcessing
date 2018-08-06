@@ -53,7 +53,7 @@ if(length(unlist(args)) == 0){
   print(paste("Creating files with the output name", ProjectName, sep = " "))
   print(paste("Running seurat with genome", genome, "on", max_pcs, "principle components at resolutions", resolution_list, "with regression vars", vars_to_regress, sep = " "))
   
-  if(Run_mito_filter = TRUE){
+  if(Run_mito_filter == TRUE){
     print("Filtering based on mt-gene level")
   }else{
     print("Not filtering for mt-gene level")
@@ -182,7 +182,7 @@ adjust_palette_size <- function(object_length, basic_color_palette){
 
 # Load data ---------------------------------------------------------------
 
-if(perform_cca = TRUE){
+if(perform_cca == TRUE){
   multi_object_list<-list()
   multi_object_list<-lapply(1:length(all_data.files), function(x) create_multi_object_list(all_data.files[x]))
   names(multi_object_list)<-names(all_data.files)
