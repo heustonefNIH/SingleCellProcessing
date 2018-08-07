@@ -54,12 +54,12 @@ if(length(unlist(args)) == 0){
   order_by_seurat_varGenes<-args$order_by_seurat_varGenes
   UMI_bounded_filtering<- args$UMI_bounded_filtering
   cca_variables<-args$cca_variables
-  if(perform_expression_filtering = TRUE){
+  if(perform_expression_filtering == TRUE){
     print("Filtering for hi/low expression")
   }else{
     print("Not filtering expression values")
   }
-  if(color_by_seurat_res = TRUE){
+  if(color_by_seurat_res == TRUE){
     print("Will colour tSNE plots using Seurat resolutions")
   }else{
     print("Will not colour tSNE plots using Seurat resolutions")
