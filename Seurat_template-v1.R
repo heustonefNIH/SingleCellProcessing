@@ -1,4 +1,6 @@
 ##ADD dimensions so can plot in 3d!!
+##Currently modifiying so it can optionally apply CCA
+
 
 # Load libraries and user functions ----------------------------------------------------------
 
@@ -12,7 +14,7 @@ ipak <- function(pkg){
 packages<-c("Seurat", "dplyr", "colorRamps", "R.utils")
 
 # Load libraries
-ipak(packages)
+suppressMessages(ipak(packages))
 
 # Process commandLine input -----------------------------------------------
 
@@ -23,8 +25,8 @@ args <- commandArgs(trailingOnly = TRUE, asValues = TRUE,
                                  max_pcs = NULL,
                                  resolution_list = NULL,
                                  Run_mito_filter = FALSE,
-                                 vars_to_regress = c("nGene", "nUMI", "orig.ident"),
-                                 perform_cca = FALSE
+                                 vars_to_regress = c("nGene", "nUMI"), #could include "orig.ident"
+                                 perform_cca = NULL
                     )
 )
 
@@ -33,11 +35,11 @@ if(length(unlist(args)) == 0){
   print("all_data.files: List of data files to be processed")
   print("ProjectName: Name of project")
   print("genome: can be mm10 or GRCh38")
-  print("Run_mito_filter: Logical; To filter, or not to filter (on expression level of mitochondrial genes)")
+  print("Run_mito_filter: Logical (FALSE); To filter, or not to filter (on expression level of mitochondrial genes)")
   print("max_pcs: number of prinicple components to use for clustering")
   print("resolution_list: list of resoultions for cluster analysis iterations")
-  print("perform_cca: Logical; if TRUE, aligns samples to remove sample-specific effects")
-}else if(length(unlist(args)) < 7){
+  print("perform_cca: aligns samples to remove effects using listed variales") ## 
+}else if(length(unlist(args)) < 8){
   print("Must supply Seurat object, number of dimensions, and max components")
 }else{
   all_data.files <- args$all_data.files

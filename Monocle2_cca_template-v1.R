@@ -7,15 +7,16 @@ ipak <- function(pkg){
   sapply(pkg, library, character.only = TRUE)
 }
 packages<-c("Seurat", "plyr", "dplyr", "colorRamps", "monocle", "stringr", "R.utils")
-ipak(packages)
+suppressMessages(ipak(packages))
 
-if(!("MyPlotTrajectoryPackage" %in% installed.packages(lib.loc = "./"))){
+if(!("MyPlotTrajectoryPackage" %in% installed.packages())){
   print("Installing MyPlotTrajectoryPackage from github")
   library(devtools)
   withr::with_libpaths(new = "./", install_github("efheuston/MyPlotTrajectoryPackage", "https://github.com/efheuston/MyPlotTrajectoryPackage.git"))
+  library("MyPlotTrajectoryPackage", lib.loc = "./")
+}else{
+  library(MyPlotTrajectoryPackage)
 }
-
-library("MyPlotTrajectoryPackage", lib.loc = "./")
 
 ###Concerned about importing nomalized data incorrectly from Seurat object
 
@@ -43,8 +44,9 @@ if(length(unlist(args)) == 0){
   print("order_by_seurat_varGenes: CURRENTLY OUT OF ORDER!! Logical; order cells using varGenes from Seurat object")
   print("UMI_bounded_filtering: Can be \"upper\", \"lower\", \"both\", \"none\" (or NULL)")
   print("cca_variables: Metadata variables to correct for during processing [e.g., c(\"~nGene + nUMI + orig.ident\")]")
-}else if(length(unlist(args)) < 6){
+}else if(length(unlist(args)) < 8){
   print("Must supply Seurat object, number of dimensions, and max components")
+  q()
 }else{
   seurat_object_filename<-args$seurat_object_filename
   num_dim<-as.integer(args$num_dim)
@@ -176,35 +178,49 @@ if(color_by_seurat_res == TRUE){
 
 # Define base colour palette ----------------------------------------------
 
-my_palette<-c("#cb4bbe",
-              "lightskyblue",
-              "grey37",
-              "#53ba48",
-              "moccasin",
-              "#dcca44",
-              "#502d70",
-              "#afd671",
-              "#cb4471",
-              "#69da99",
-              "#d44732",
-              "#6fd3cf",
-              "#5d2539",
-              "#cfd0a0",
-              "blue",
-              "#d2883b",
-              "#6793c0",
-              "#898938",
-              "#c98ac2",
-              "yellow",
-              "#c4c0cc",
-              "#7d3d23",
-              "#00a5ff",
-              "#d68d7a",
-              "#a2c1a3")
+# Create basic colour palette
+
+basic_color_palette<-c("#cb4bbe",
+                       "lightskyblue",
+                       "grey37",
+                       "#53ba48",
+                       "moccasin",
+                       "#dcca44",
+                       "#502d70",
+                       "#afd671",
+                       "#cb4471",
+                       "#69da99",
+                       "#d44732",
+                       "#6fd3cf",
+                       "#5d2539",
+                       "#cfd0a0",
+                       "blue",
+                       "#d2883b",
+                       "#6793c0",
+                       "#898938",
+                       "#c98ac2",
+                       "yellow",
+                       "#c4c0cc",
+                       "#7d3d23",
+                       "#00a5ff",
+                       "#d68d7a",
+                       "#a2c1a3")
+
+# Adjust colour palette
+adjust_palette_size <- function(object_length, basic_color_palette = basic_color_palette){
+  if(length(unique(object_length)) > length(basic_color_palette)){
+    new_length <- length(unique(object_length@ident)) - length(basic_color_palette)
+    my_palette <- c(basic_color_palette, primary.colors(new_length))
+  } else {
+    my_palette <- basic_color_palette
+  }
+}
 
 # Initialize monocle object -----------------------------------------------
 
 monocle_object<-importCDS(seurat_object, import_all = FALSE)
+adjust_palette_size(length(unique(monocle_object@ident)), basic_color_palette = basic_color_palette)
+
 remove(seurat_object)
 gc()
 
@@ -314,6 +330,8 @@ monocle_object<-orderCells(monocle_object)
 
 
 # Plot cell trajectories --------------------------------------------------
+
+
 
 try(
   png_plotFunction(my_plot_cell_trajectory(monocle_object, 

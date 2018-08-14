@@ -10,7 +10,7 @@ ipak <- function(pkg){
 packages<-c("Seurat", "dplyr", "colorRamps", "R.utils")
 
 # Load libraries
-ipak(packages)
+suppressMessages(ipak(packages))
 
 # Process commandLine input -----------------------------------------------
 
@@ -36,7 +36,7 @@ if(length(unlist(args)) == 0){
   print("Run_mito_filter: Logical; To filter, or not to filter (on expression level of mitochondrial genes)")
   print("max_pcs: number of prinicple components to use for clustering")
   print("resolution_list: list of resoultions for cluster analysis iterations")
-}else if(length(unlist(args)) < 7){
+}else if(length(unlist(args)) < 6){
   print("Must supply Seurat object, number of dimensions, and max components")
 }else{
   all_data.files <- args$all_data.files
