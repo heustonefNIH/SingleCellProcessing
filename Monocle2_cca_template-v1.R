@@ -6,7 +6,7 @@ ipak <- function(pkg){
     install.packages(new.pkg, dependencies = TRUE)
   sapply(pkg, library, character.only = TRUE)
 }
-packages<-c("Seurat", "plyr", "dplyr", "colorRamps", "monocle", "stringr", "R.utils")
+packages<-c("Seurat", "plyr", "dplyr", "colorRamps", "monocle", "stringr")
 suppressMessages(ipak(packages))
 
 if(!("MyPlotTrajectoryPackage" %in% installed.packages())){
@@ -44,6 +44,7 @@ if(length(unlist(args)) == 0){
   print("order_by_seurat_varGenes: CURRENTLY OUT OF ORDER!! Logical; order cells using varGenes from Seurat object")
   print("UMI_bounded_filtering: Can be \"upper\", \"lower\", \"both\", \"none\" (or NULL)")
   print("cca_variables: Metadata variables to correct for during processing [e.g., c(\"~nGene + nUMI + orig.ident\")]")
+  q()
 }else if(length(unlist(args)) < 8){
   print("Must supply Seurat object, number of dimensions, and max components")
   q()
