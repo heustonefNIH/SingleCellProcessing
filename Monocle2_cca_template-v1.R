@@ -86,21 +86,21 @@ png_plotFunction<-function(plot_to_make = plot_to_make, filename = filename, hei
 
 cycle_plot_param<-function(plotting_function, cycle_parameter, the_object){
   # Create color pallete
-  my_palette<-my_palette[1:25]
+  basic_color_palette<-basic_color_palette[1:25]
   new_length <-0
-  if(length(cycle_parameter) > length(my_palette)){
-    new_length<-length(unique(my_object@ident)) - length(my_palette)
+  if(length(cycle_parameter) > length(basic_color_palette)){
+    new_length<-length(unique(my_object@ident)) - length(basic_color_palette)
   }
   new_length
-  my_palette<-c(my_palette, primary.colors(new_length))
+  basic_color_palette<-c(basic_color_palette, primary.colors(new_length))
   
   if(plotting_function == "cluster"){
-    png_plotFunction(my_plot_cell_clusters(the_object, 1, 2, color = cycle_parameter, point_colors = my_palette) +
+    png_plotFunction(my_plot_cell_clusters(the_object, 1, 2, color = cycle_parameter, point_colors = basic_color_palette) +
                        ggtitle(paste(output_prefix, "-", cycle_parameter, sep = "")),
                      filename = paste(output_prefix, "_clstr-", cycle_parameter,".png", sep = ""),
                      height = 1600,
                      width = 1600)
-    png_plotFunction(my_plot_cell_clusters(the_object, 1, 2, color = cycle_parameter, point_colors = my_palette) +
+    png_plotFunction(my_plot_cell_clusters(the_object, 1, 2, color = cycle_parameter, point_colors = basic_color_palette) +
                        facet_wrap(as.vector(cycle_parameter)) +
                        ggtitle(paste(paste(output_prefix, "-", cycle_parameter, sep = ""))),
                      filename = paste(paste(output_prefix, "_clstr-", cycle_parameter,"FACET.png", sep = "")),
@@ -118,14 +118,14 @@ cycle_plot_param<-function(plotting_function, cycle_parameter, the_object){
     png_plotFunction(my_plot_cell_trajectory(the_object,
                                              color_by = cycle_parameter,
                                              cell_size = 1,
-                                             point_colors = my_palette) + ggtitle(paste(output_prefix, "-", cycle_parameter, sep = "")),
+                                             point_colors = basic_color_palette) + ggtitle(paste(output_prefix, "-", cycle_parameter, sep = "")),
                      filename = paste(output_prefix, "_trajectory-", cycle_parameter,".png", sep = ""),
                      height = 1600,
                      width = 1600)
     png_plotFunction(my_plot_cell_trajectory(the_object,
                                              color_by = cycle_parameter,
                                              cell_size = 1,
-                                             point_colors = my_palette) +
+                                             point_colors = basic_color_palette) +
                        facet_wrap(as.vector(cycle_parameter)) + ggtitle(paste(output_prefix, "-", cycle_parameter, sep = "")),
                      filename = paste(output_prefix, "_trajectory-", cycle_parameter,"FACET.png", sep = ""),
                      height = 1600,
@@ -133,7 +133,7 @@ cycle_plot_param<-function(plotting_function, cycle_parameter, the_object){
     png_plotFunction(my_plot_cell_trajectory(the_object,
                                              color_by = cycle_parameter,
                                              cell_size = 1,
-                                             point_colors = my_palette) +
+                                             point_colors = basic_color_palette) +
                        facet_wrap(~orig.ident) + ggtitle(paste(output_prefix, "-", cycle_parameter,"FACETorig.ident", sep = "")),
                      filename = paste(output_prefix, "_trajectory-", cycle_parameter,"FACETorig.ident.png", sep = ""),
                      height = 1600,
@@ -141,7 +141,7 @@ cycle_plot_param<-function(plotting_function, cycle_parameter, the_object){
     png_plotFunction(my_plot_cell_trajectory(the_object,
                                              color_by = "orig.ident",
                                              cell_size = 1,
-                                             point_colors = my_palette) +
+                                             point_colors = basic_color_palette) +
                        facet_wrap(as.vector(cycle_parameter)) + ggtitle(paste(output_prefix, "-orig.identFACET", cycle_parameter, sep = "")),
                      filename = paste(output_prefix, "_trajectory-orig.identFACET", cycle_parameter,".png", sep = ""),
                      height = 1600,
@@ -161,9 +161,9 @@ cycle_plot_param<-function(plotting_function, cycle_parameter, the_object){
 
 # Load Seurat object as CDS -----------------------------------------------
 
-if(grep(x = seurat_object_filename, pattern = "rds$", ignore.case = T)){
+if(grepl(x = seurat_object_filename, pattern = "rds$", ignore.case = T)){
   seurat_object<-readRDS(seurat_object_filename)
-} else if (grep(x = seurat_object_filename, pattern = "Robj$", ignore.case = T)){
+} else if (grepl(x = seurat_object_filename, pattern = "Robj$", ignore.case = T)){
   seurat_object<-get(load(seurat_object_filename))
 } else {
   print("I don't recognize this type of file")
@@ -211,17 +211,22 @@ basic_color_palette<-c("#cb4bbe",
 adjust_palette_size <- function(object_length, basic_color_palette = basic_color_palette){
   if(length(unique(object_length)) > length(basic_color_palette)){
     new_length <- length(unique(object_length@ident)) - length(basic_color_palette)
-    my_palette <- c(basic_color_palette, primary.colors(new_length))
+    basic_color_palette <- c(basic_color_palette, primary.colors(new_length))
   } else {
-    my_palette <- basic_color_palette
+    basic_color_palette <- basic_color_palette
   }
 }
 
 # Initialize monocle object -----------------------------------------------
 
 monocle_object<-importCDS(seurat_object, import_all = FALSE)
-adjust_palette_size(length(unique(monocle_object@ident)), basic_color_palette = basic_color_palette)
 
+
+if(color_by_seurat_res == TRUE & "ident" %in% colnames(monocle_object@phenoData@data)){
+  adjust_palette_size(length(unique(monocle_object@ident)), basic_color_palette = basic_color_palette)
+} else{
+  basic_color_palette = basic_color_palette
+}
 remove(seurat_object)
 gc()
 
@@ -337,21 +342,21 @@ monocle_object<-orderCells(monocle_object)
 try(
   png_plotFunction(my_plot_cell_trajectory(monocle_object, 
                                            cell_size = 1, 
-                                           point_colors = my_palette), 
+                                           point_colors = basic_color_palette), 
                    filename = paste(output_prefix, "_trajectory.png", sep = ""))
 )
 try(
   png_plotFunction(my_plot_cell_trajectory(monocle_object, 
                                            color_by = "orig.ident", 
                                            cell_size = 1, 
-                                           point_colors = my_palette), 
+                                           point_colors = basic_color_palette), 
                    filename = paste(output_prefix, "_trajectory-orig.ident.png", sep = ""))
 )
 try(
   png_plotFunction(my_plot_cell_trajectory(monocle_object, 
                                            color_by = "orig.ident", 
                                            cell_size = 1, 
-                                           point_colors = my_palette) + 
+                                           point_colors = basic_color_palette) + 
                      facet_wrap(~orig.ident), 
                    filename = paste(output_prefix, "_trajectory-orig.identFACET.png", sep = ""))
 )

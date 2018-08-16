@@ -3,17 +3,16 @@
 args<-commandArgs(trailingOnly = TRUE)
 
 main<-function(){
-  if(!(all(c("--data", "--projectName", "--genome", "--option_arguments$max_pcs") %in% unlist(args)))){
+  if(!(all(c("--data", "--projectName", "--genome", "--max_pcs") %in% unlist(args)))){
     stop("Required arguments:
            --data: 
            --projectName: 
-           --option_arguments$genome: 
-           --option_arguments$max_pcs: 
+           --genome: 
+           --max_pcs: 
            --resolutionList: 
            Additional arguments:
            --mitoFilter:
            --vars_to_regress: 
-           --resolutionList:
            --perform_cca: ")
   } else{
     print("all good!")
@@ -27,9 +26,9 @@ main<-function(){
     })
     names(option_arguments) <- unlist(option_names)
     
-    if(!("option_arguments$mitoFilter" %in% names(option_arguments))){
+    if(!("mitoFilter" %in% names(option_arguments))){
       print("Not filtering based on mt-gene expression")
-      option_arguments$option_arguments$mitoFilter<-FALSE
+      option_arguments$mitoFilter<-FALSE
     }else{
       print("Filtering based on mt-gene expression")
     }
@@ -39,14 +38,15 @@ main<-function(){
     if(!("perform_cca" %in% names(option_arguments))){
       option_arguments$perform_cca<-FALSE
     }
+    return(option_arguments)
   }
 }
 
-main()
+option_arguments<-main()
 
 
 print(paste("Performing clustering on", option_arguments$data, sep = " "))
-print(paste("Creating files with the output name", option_arguments$data, sep = " "))
+print(paste("Creating files with the output name", option_arguments$projectName, sep = " "))
 print(paste("Running seurat with genome", option_arguments$genome, "on", option_arguments$max_pcs, "principle components at resolutions", option_arguments$resolutionList, "with regression vars", option_arguments$vars_to_regress, sep = " "))
 
 
@@ -268,8 +268,9 @@ if(option_arguments$perform_cca == TRUE){
   dev.off()
   
   
-  my_object<-ScaleData(my_object, vars.to.regress = option_arguments$vars_to_regress)
-  my_object<-CellCycleScoring(my_object, s.genes = s.genes, g2m.genes = g2m.genes, set.ident = FALSE)
+  my_object<-ScaleData(my_object, vars.to.regress = option_arguments$vars_to_regress) 
+  # worked to here
+  my_object<-CellCycleScoring(my_object, s.genes = s.genes, g2m.genes = g2m.genes, set.ident = FALSE) 
   
   
   # Run PCA -----------------------------------------------------------------
