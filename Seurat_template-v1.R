@@ -269,8 +269,8 @@ if(option_arguments$perform_cca == TRUE){
   
   
   my_object<-ScaleData(my_object, vars.to.regress = option_arguments$vars_to_regress) 
-  # worked to here
   my_object<-CellCycleScoring(my_object, s.genes = s.genes, g2m.genes = g2m.genes, set.ident = FALSE) 
+  # worked to here
   
   
   # Run PCA -----------------------------------------------------------------
