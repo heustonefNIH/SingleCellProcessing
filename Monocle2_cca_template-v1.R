@@ -1,3 +1,50 @@
+# Process commandLine input -----------------------------------------------
+args<-commandArgs(trailingOnly = TRUE)
+
+main<-function(){
+  if(!(all(c("--seurat_object_filename", "--num_dim", "--max_components") %in% unlist(args)))){
+    stop("Required arguments:
+           --seurat_object_filename:
+           --num_dim:
+           --max_components:
+           Additional arguments:
+           --perform_expression_filtering:
+           --color_by_seurat_res:
+           --order_by_seurat_varGenes:
+           --UMI_bounded_filtering:
+           --cca_variables: ")
+  } else{
+    print("all good!")
+    args<-paste(unlist(args), collapse = " ")
+    args<-unlist(strsplit(args, "--"))[-1]
+    option_arguments<-sapply(args, function(x){
+      unlist(strsplit(x, " "))[-1]
+    })
+    option_names<-sapply(args, function(x){
+      unlist(strsplit(x, " "))[1]
+    })
+    names(option_arguments) <- unlist(option_names)
+
+
+    if(!(perform_expression_filtering %in% names(option_arguments))){
+      print("Not filtering expression values")
+      option_arguments$perform_expression_filtering<-TRUE
+    }
+
+    return(option_arguments)
+
+  }
+}
+
+option_arguments<-main()
+
+
+
+print(paste("Setting UMI bounded filtering to", UMI_bounded_filtering, sep = " "))
+print(paste("Setting correction variables as", cca_variables, sep = " "))
+print(paste("Will process", seurat_object_filename, "using", num_dim, "dimensions and", max_components, "components", sep = " "))
+
+
 # Load libraries ----------------------------------------------------------
 
 ipak <- function(pkg){
@@ -20,57 +67,7 @@ if(!("MyPlotTrajectoryPackage" %in% installed.packages())){
 
 ###Concerned about importing nomalized data incorrectly from Seurat object
 
-# Process commandLine input -----------------------------------------------
 
-args <- commandArgs(trailingOnly = TRUE, asValues = TRUE, 
-                    defaults = c(seurat_object_filename = NULL,
-                                 num_dim = NULL,
-                                 max_components = NULL,
-                                 perform_expression_filtering = TRUE,
-                                 color_by_seurat_res = TRUE,
-                                 order_by_seurat_varGenes = FALSE,
-                                 UMI_bounded_filtering = "upper", #Can be "upper", "lower", "both", "none" (or NULL)
-                                 cca_variables = "~nGene + nUMI" # "~nGene + nUMI + orig.ident"
-                    )
-)
-
-if(length(unlist(args)) == 0){
-  print("Arguments:") 
-  print("seurat_object_filename: Location/filename of Seurat object containing (minmally) all data as object of class Seurat")
-  print("num_dim: Number of dimensions to use during dimensional reduction")
-  print("max_components: 2 for 2D, 3 for 3D")
-  print("perform_expression_filtering: Logical; filter out cells with min_expr 0.1 and expression in >=10 cells")
-  print("color_by_seurat_res: = Logical; use cluster assignments from Seurat tsne obejct to color monocle plots")
-  print("order_by_seurat_varGenes: CURRENTLY OUT OF ORDER!! Logical; order cells using varGenes from Seurat object")
-  print("UMI_bounded_filtering: Can be \"upper\", \"lower\", \"both\", \"none\" (or NULL)")
-  print("cca_variables: Metadata variables to correct for during processing [e.g., c(\"~nGene + nUMI + orig.ident\")]")
-  q()
-}else if(length(unlist(args)) < 8){
-  print("Must supply Seurat object, number of dimensions, and max components")
-  q()
-}else{
-  seurat_object_filename<-args$seurat_object_filename
-  num_dim<-as.integer(args$num_dim)
-  max_components<-as.integer(args$max_components)
-  perform_expression_filtering<-args$perform_expression_filtering
-  color_by_seurat_res<- args$color_by_seurat_res
-  order_by_seurat_varGenes<-args$order_by_seurat_varGenes
-  UMI_bounded_filtering<- args$UMI_bounded_filtering
-  cca_variables<-args$cca_variables
-  if(perform_expression_filtering == TRUE){
-    print("Filtering for hi/low expression")
-  }else{
-    print("Not filtering expression values")
-  }
-  if(color_by_seurat_res == TRUE){
-    print("Will colour tSNE plots using Seurat resolutions")
-  }else{
-    print("Will not colour tSNE plots using Seurat resolutions")
-  }
-  print(paste("Setting UMI bounded filtering to", UMI_bounded_filtering, sep = " "))
-  print(paste("Setting correction variables as", cca_variables, sep = " "))
-  print(paste("Will process", seurat_object_filename, "using", num_dim, "dimensions and", max_components, "components", sep = " "))
-}
 
 # Define script-specific functions ----------------------------------------
 
@@ -93,7 +90,7 @@ cycle_plot_param<-function(plotting_function, cycle_parameter, the_object){
   }
   new_length
   basic_color_palette<-c(basic_color_palette, primary.colors(new_length))
-  
+
   if(plotting_function == "cluster"){
     png_plotFunction(my_plot_cell_clusters(the_object, 1, 2, color = cycle_parameter, point_colors = basic_color_palette) +
                        ggtitle(paste(output_prefix, "-", cycle_parameter, sep = "")),
@@ -112,7 +109,7 @@ cycle_plot_param<-function(plotting_function, cycle_parameter, the_object){
                      filename = paste(output_prefix, "_clstr-orig.identFACET.png", sep = ""),
                      height = 1600,
                      width = 1600)
-    
+
   }
   if(plotting_function == "trajectory"){
     png_plotFunction(my_plot_cell_trajectory(the_object,
@@ -153,7 +150,7 @@ cycle_plot_param<-function(plotting_function, cycle_parameter, the_object){
                        geom_vline(xintercept = lower_bound) +
                        ggtitle(paste(output_prefix, "-", cycle_parameter, sep = "")),
                      filename = paste(output_prefix, "_nUMI_2SD-by", cycle_parameter,".png", sep = ""))
-    
+
   }
 }
 
@@ -175,7 +172,9 @@ if(color_by_seurat_res == TRUE){
   seurat_res<-colnames(seurat_object@meta.data)[grep(x=colnames(seurat_object@meta.data), pattern = "^res")]
 }
 
-
+option_arguments$num_dim<-option_arguments$as.numeric(num_dim)
+option_arguments$max_components<-option_arguments$as.numeric(max_components)
+as.numeric
 
 # Define base colour palette ----------------------------------------------
 
@@ -254,8 +253,8 @@ upper_bound<-10^(mean(log10(pData(monocle_object)$Total_nUMI)) + 2*sd(log10(pDat
 
 # Plot UMI distributions and filter --------------------------------------------------
 
-png_plotFunction(qplot(Total_nUMI, data = pData(monocle_object), color = orig.ident, geom = "density") + 
-                   geom_vline(xintercept = upper_bound) + 
+png_plotFunction(qplot(Total_nUMI, data = pData(monocle_object), color = orig.ident, geom = "density") +
+                   geom_vline(xintercept = upper_bound) +
                    geom_vline(xintercept = lower_bound),
                  filename = paste(output_prefix, "_nUMI_2SD-byID.png", sep = ""))
 
@@ -291,17 +290,17 @@ png_plotFunction(plot_pc_variance_explained(monocle_object, return_all = FALSE),
 
 # Perform clustering ------------------------------------------------------
 
-monocle_object<-reduceDimension(monocle_object, 
-                                max_components = max_components, 
-                                num_dim = num_dim, 
-                                reduction_method = 'tSNE', 
-                                residualModelFormulaStr = cca_variables, 
+monocle_object<-reduceDimension(monocle_object,
+                                max_components = max_components,
+                                num_dim = num_dim,
+                                reduction_method = 'tSNE',
+                                residualModelFormulaStr = cca_variables,
                                 verbose = TRUE)
 monocle_object<-clusterCells(monocle_object)
 
-png_plotFunction(plot_cell_clusters(monocle_object, 1, 2, color = "orig.ident"), 
+png_plotFunction(plot_cell_clusters(monocle_object, 1, 2, color = "orig.ident"),
                  filename = paste(output_prefix, "_clstr-orig.ident.png", sep = ""),
-                 height = 1600, 
+                 height = 1600,
                  width = 1600)
 
 
@@ -340,24 +339,24 @@ monocle_object<-orderCells(monocle_object)
 
 
 try(
-  png_plotFunction(my_plot_cell_trajectory(monocle_object, 
-                                           cell_size = 1, 
-                                           point_colors = basic_color_palette), 
+  png_plotFunction(my_plot_cell_trajectory(monocle_object,
+                                           cell_size = 1,
+                                           point_colors = basic_color_palette),
                    filename = paste(output_prefix, "_trajectory.png", sep = ""))
 )
 try(
-  png_plotFunction(my_plot_cell_trajectory(monocle_object, 
-                                           color_by = "orig.ident", 
-                                           cell_size = 1, 
-                                           point_colors = basic_color_palette), 
+  png_plotFunction(my_plot_cell_trajectory(monocle_object,
+                                           color_by = "orig.ident",
+                                           cell_size = 1,
+                                           point_colors = basic_color_palette),
                    filename = paste(output_prefix, "_trajectory-orig.ident.png", sep = ""))
 )
 try(
-  png_plotFunction(my_plot_cell_trajectory(monocle_object, 
-                                           color_by = "orig.ident", 
-                                           cell_size = 1, 
-                                           point_colors = basic_color_palette) + 
-                     facet_wrap(~orig.ident), 
+  png_plotFunction(my_plot_cell_trajectory(monocle_object,
+                                           color_by = "orig.ident",
+                                           cell_size = 1,
+                                           point_colors = basic_color_palette) +
+                     facet_wrap(~orig.ident),
                    filename = paste(output_prefix, "_trajectory-orig.identFACET.png", sep = ""))
 )
 
