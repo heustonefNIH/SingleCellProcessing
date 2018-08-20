@@ -5,15 +5,15 @@ args<-commandArgs(trailingOnly = TRUE)
 main<-function(){
   if(!(all(c("--data", "--projectName", "--genome", "--max_pcs", "--resolutionList") %in% unlist(args)))){
     stop("Required arguments:
-           --data:
-           --projectName:
-           --genome:
-           --max_pcs:
+           --data: folders containing outs files (space seprated)
+           --projectName: name to append to printed files
+           --genome: genome (mm10 or GRCh38)
+           --max_pcs: dimensionality of reduced space 
            --resolutionList:
            Additional arguments:
-           --mitoFilter:
-           --vars_to_regress:
-           --perform_cca: ")
+           --mitoFilter: whether or not to correct for cell cycle stage (default = FALSE)
+           --vars_to_regress: variables to regress on (default = c(\"nUMI\", \"nGene\"))
+           --perform_cca: whether or not to perform multi canonical clustering alignment")
   } else{
     print("all good!")
     args<-paste(unlist(args), collapse = " ")
@@ -125,7 +125,7 @@ create_multi_object_list<-function(x){
   cellranger_files<-paste(x[[1]], "/outs/filtered_gene_bc_matrices/",option_arguments$genome,"/", sep="")
   names(cellranger_files)<-names(x)
   my_object.data<-Read10X(cellranger_files)
-  my_object<- CreateSeuratObject(raw.data = my_object.data, min.cells = 3, min.genes = 200, project = option_arguments$data)
+  my_object<- CreateSeuratObject(raw.data = my_object.data, min.cells = 3, min.genes = 200, project = option_arguments$projectName)
   my_object<- create_percentMito_column(my_object)
 
   my_object<-NormalizeData(my_object, normalization.method = "LogNormalize", scale.factor = 10000)
@@ -142,6 +142,8 @@ create_multi_object_list<-function(x){
 read_10XGenomics_data<-function(x){
   x = paste(x, "/outs/filtered_gene_bc_matrices/",option_arguments$genome,"/", sep="")
 }
+
+
 
 # Create basic colour palette
 
@@ -230,7 +232,7 @@ if(option_arguments$perform_cca == TRUE){
   # filter_cells_and_genes(my_obj,min_UMIs=1000,max_UMIs=25000,min_detected_genes=1000,max_detected_genes=5000,max_percent_mito=9) <--Supat's filter
   data_files.list<-sapply(option_arguments$data[1:length(option_arguments$data)], function(x) read_10XGenomics_data(x))
   my_object.data<-Read10X(data_files.list)
-  my_object<- CreateSeuratObject(raw.data = my_object.data, min.cells = 3, min.genes = 200, project = option_arguments$data)
+  my_object<- CreateSeuratObject(raw.data = my_object.data, min.cells = 3, min.genes = 200, project = option_arguments$projectName)
   my_object<- create_percentMito_column(my_object)
 
   par(mfrow=c(1,1))
@@ -367,7 +369,7 @@ for(resolution in option_arguments$resolutionList){
 
 
   saveRDS(my_object, file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"_tsne.rds", sep = ""))
-  print(paste("Saved ",option_arguments$data, "dim",option_arguments$max_pcs, "res",resolution,"_tsne.rds", sep = ""))
+  print(paste("Saved ",option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"_tsne.rds", sep = ""))
   # Plot cell cycle states --------------------------------------------------------------
 
   ridgeplot_genes<- c("Pcna", "Top2a", "Mcm6", "Mki67")
@@ -384,22 +386,11 @@ for(resolution in option_arguments$resolutionList){
 
   # Print gene plots --------------------------------------------------------
 
-  drawmyplot<-function(geneList, tsne.obj, name){
-    for(gene in geneList){
-      png(filename=paste(name, "-Vln_",gene, ".png", sep=""), width=800, heigh=800)
-      try(print(VlnPlot(tsne.obj, gene, do.return = T, point.size.use = 0, cols.use = my_palette)))
-      dev.off()
-      png(filename=paste(name, "-Ftr_",gene, ".png", sep=""), width=800, height=800)
-      try(FeaturePlot(tsne.obj, gene,cols.use=c("grey", "blue"), pt.size = 1, do.return = T))
-      dev.off()
-    }
-  }
-
   geneList = c("Nfe2", "Gata1", "Gata2", "Hbg1", "Hbg2", "Zfpm1", "Hbb", "Hba1","Hba2", "Hbd", "Hbe1", "Klf1", "Fli1", "Meis1", "Kit", "Vwf", "Pf4", "Mpo", "Runx1", "Csf1", "Tfr2", "Cnrip1", "Myc" ,"Tk1", "Rrm2", "Itga2b", "Lmna", "Nfia", "Gp1bb", "Plek", "Pbx1", "Hes6", "E2f4","Dntt", "Vpreb1", "Id3", "Atf3", "Jchain", "Cd79a", "Satb1", "Sp140", "Tgfbi", "Lgmn", "Irf8", "Irf7", "Tcf4",  "Batf3", "Tcf19", "Sell", "Cd52", "Hoxb5", "Gata3", "Eno1", "Mpo", "Atp8b4", "Spi1", "Mafk", "Hdc", "Prg2", "Lmo4","Ctsg","Elane", "Cebpa", "Lgals1", "Fosb", "Prtn3",  "Tfrc", "Mpl", "Flt3", "Ca1", "Cd177", "Cd180","Cd244","Cd24","Cd27","Cd34","Cd37","Cd47","Cd48","Cd52","Cd53","Cd63","Cd68","Cd69","Cd72","Cd74","Cd81","Cd82","Cd84","Cd9","Cd93", "Mt1a", "Mt1g", "Mt1f", "Mt1e", "Mt1x")
-  drawmyplot(geneList, my_object, name = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution, sep = ""))
+  suppressWarnings(drawmyplot(geneList, my_object, name = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution, sep = "")))
 
   housekeepingGenes<-c("Actb", "Gapdh", "Rn18s", "Ppia", "Rpl13a", "Rplp0","B2m", "Hmbs", "Pgk1", "Alas1", "Gusb", "Sdha", "Tbp", "Tubb", "Ywhaz")
-  drawmyplot(geneList, my_object, name = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res", resolution, sep = ""))
+  suppressWarnings(drawmyplot(geneList, my_object, name = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res", resolution, "-HKgene", sep = "")))
 
   # Tabulate data -----------------------------------------------------------
 
@@ -429,9 +420,6 @@ for(resolution in option_arguments$resolutionList){
   write.table(avgexp, file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"_AvgXprsn.txt", sep = ""), row.names = TRUE, quote = FALSE, sep = "\t")
 
 }
-saveRDS(my_object, file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"FINALPRINT_tsne.rds", sep = ""))
-
-
-
-
-
+try(saveRDS(my_object, file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"FINALPRINT_tsne.rds", sep = "")), silent = FALSE)
+try(savehistory(file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,".Rhistory", sep = "")), silent = FALSE)
+try(save.image(file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,".RData", sep = "")), silent = FALSE)
