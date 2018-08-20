@@ -2,17 +2,17 @@
 args<-commandArgs(trailingOnly = TRUE)
 
 main<-function(){
-  if(!(all(c("--seurat_object_filename", "--num_dim", "--max_components") %in% unlist(args)))){
+  if(!(all(c("--seurat_object_filename", "--num_dim") %in% unlist(args)))){
     stop("Required arguments:
-           --seurat_object_filename:
-           --num_dim:
-           --max_components:
+           --seurat_object_filename: name of seurat object to import (note: file must have .Robj or .rds extension)
+           --num_dim: dimensionality of the reduced space
            Additional arguments:
-           --perform_expression_filtering:
-           --color_by_seurat_res:
-           --order_by_seurat_varGenes:
-           --UMI_bounded_filtering:
-           --cca_variables: ")
+           --max_components: Dimensions to plot (default = 2) note: currently I don't think this does anything
+           --perform_expression_filtering: should analyzed RNAs be limited to expression of at least 0.1 and in at least 10 cells (default = TRUE) 
+           --color_by_seurat_res: (default = TRUE)
+           --order_by_seurat_varGenes: (default = FALSE)
+           --UMI_bounded_filtering: (default = \"upper\", can be \"upper\", \"lower\", \"both\", or \"none\")
+           --cca_variables: (default = \"~nUMI + nGene\")")
   } else{
     print("all good!")
     args<-paste(unlist(args), collapse = " ")
@@ -26,9 +26,29 @@ main<-function(){
     names(option_arguments) <- unlist(option_names)
 
 
-    if(!(perform_expression_filtering %in% names(option_arguments))){
+    if(!("max_components" %in% names(option_arguments))){
+      print("Not filtering expression values")
+      option_arguments$max_components<-2
+    }
+    if(!("perform_expression_filtering" %in% names(option_arguments))){
       print("Not filtering expression values")
       option_arguments$perform_expression_filtering<-TRUE
+    }
+    if(!("UMI_bounded_filtering" %in% names(option_arguments))){
+      print("Using upper UMI_ounded filtering")
+      option_arguments$UMI_bounded_filtering<-"upper"
+    }
+    if(!("order_by_seurat_varGenes" %in% names(option_arguments))){
+      print("Not ordering by seurat_varGenes")
+      option_arguments$order_by_seurat_varGenes<-FALSE
+    }
+    if(!("color_by_seurat_res" %in% names(option_arguments))){
+      print("Coloring by seurat resolutions")
+      option_arguments$color_by_seurat_res<-TRUE
+    }
+    if(!("cca_variables" %in% names(option_arguments))){
+      print("Not ordering by seurat_varGenes")
+      option_arguments$cca_variables<- "~nUMI + nGene"
     }
 
     return(option_arguments)
@@ -37,12 +57,13 @@ main<-function(){
 }
 
 option_arguments<-main()
+option_arguments$num_dim<-as.numeric(option_arguments$num_dim)
+option_arguments$max_components<-as.numeric(option_arguments$max_components)
 
 
-
-print(paste("Setting UMI bounded filtering to", UMI_bounded_filtering, sep = " "))
-print(paste("Setting correction variables as", cca_variables, sep = " "))
-print(paste("Will process", seurat_object_filename, "using", num_dim, "dimensions and", max_components, "components", sep = " "))
+print(paste("Setting UMI bounded filtering to", option_arguments$UMI_bounded_filtering, sep = " "))
+print(paste("Setting correction variables as", option_arguments$cca_variables, sep = " "))
+print(paste("Will process", option_arguments$seurat_object_filename, "using", option_arguments$num_dim, "dimensions and", option_arguments$max_components, "components", sep = " "))
 
 
 # Load libraries ----------------------------------------------------------
@@ -53,7 +74,7 @@ ipak <- function(pkg){
     install.packages(new.pkg, dependencies = TRUE)
   sapply(pkg, library, character.only = TRUE)
 }
-packages<-c("Seurat", "plyr", "dplyr", "colorRamps", "monocle", "stringr")
+packages<-c("Seurat", "monocle", "plyr", "dplyr", "colorRamps", "stringr")
 suppressMessages(ipak(packages))
 
 if(!("MyPlotTrajectoryPackage" %in% installed.packages())){
@@ -71,7 +92,7 @@ if(!("MyPlotTrajectoryPackage" %in% installed.packages())){
 
 # Define script-specific functions ----------------------------------------
 
-output_prefix<-gsub(x=seurat_object_filename, pattern = ".rds", replacement = "")
+output_prefix<-gsub(x=option_arguments$seurat_object_filename, pattern = ".rds", replacement = "")
 output_prefix<-gsub(x = output_prefix, pattern =  "_tsne", replacement =  "")
 
 # define function to create pngs
@@ -158,23 +179,22 @@ cycle_plot_param<-function(plotting_function, cycle_parameter, the_object){
 
 # Load Seurat object as CDS -----------------------------------------------
 
-if(grepl(x = seurat_object_filename, pattern = "rds$", ignore.case = T)){
-  seurat_object<-readRDS(seurat_object_filename)
-} else if (grepl(x = seurat_object_filename, pattern = "Robj$", ignore.case = T)){
-  seurat_object<-get(load(seurat_object_filename))
+if(grepl(x = option_arguments$seurat_object_filename, pattern = "rds$", ignore.case = T)){
+  seurat_object<-readRDS(option_arguments$seurat_object_filename)
+} else if (grepl(x = option_arguments$seurat_object_filename, pattern = "Robj$", ignore.case = T)){
+  seurat_object<-get(load(option_arguments$seurat_object_filename))
 } else {
   print("I don't recognize this type of file")
 }
 
 seurat_varGenes<-seurat_object@var.genes
 
-if(color_by_seurat_res == TRUE){
+if(option_arguments$cca_variables == TRUE){
   seurat_res<-colnames(seurat_object@meta.data)[grep(x=colnames(seurat_object@meta.data), pattern = "^res")]
 }
 
-option_arguments$num_dim<-option_arguments$as.numeric(num_dim)
-option_arguments$max_components<-option_arguments$as.numeric(max_components)
-as.numeric
+
+
 
 # Define base colour palette ----------------------------------------------
 
@@ -209,7 +229,7 @@ basic_color_palette<-c("#cb4bbe",
 # Adjust colour palette
 adjust_palette_size <- function(object_length, basic_color_palette = basic_color_palette){
   if(length(unique(object_length)) > length(basic_color_palette)){
-    new_length <- length(unique(object_length@ident)) - length(basic_color_palette)
+    new_length <- length(unique(object_length)) - length(basic_color_palette)
     basic_color_palette <- c(basic_color_palette, primary.colors(new_length))
   } else {
     basic_color_palette <- basic_color_palette
@@ -221,7 +241,7 @@ adjust_palette_size <- function(object_length, basic_color_palette = basic_color
 monocle_object<-importCDS(seurat_object, import_all = FALSE)
 
 
-if(color_by_seurat_res == TRUE & "ident" %in% colnames(monocle_object@phenoData@data)){
+if(option_arguments$cca_variables == TRUE & "ident" %in% colnames(monocle_object@phenoData@data)){
   adjust_palette_size(length(unique(monocle_object@ident)), basic_color_palette = basic_color_palette)
 } else{
   basic_color_palette = basic_color_palette
@@ -235,7 +255,7 @@ monocle_object<-estimateDispersions(monocle_object)
 
 # Filter low-quality cells ------------------------------------------------
 
-if(perform_expression_filtering == TRUE){
+if(option_arguments$perform_expression_filtering == TRUE){
   monocle_object<-detectGenes(monocle_object, min_expr = 0.1)
   expressed_genes<-row.names(subset(fData(monocle_object), num_cells_expressed >=10))
 }
@@ -259,19 +279,19 @@ png_plotFunction(qplot(Total_nUMI, data = pData(monocle_object), color = orig.id
                  filename = paste(output_prefix, "_nUMI_2SD-byID.png", sep = ""))
 
 try(
-  if(color_by_seurat_res == TRUE){
+  if(option_arguments$cca_variables == TRUE){
     lapply(seurat_res[1:length(seurat_res)], plotting_function = "qplot", the_object = monocle_object, cycle_plot_param)
   }
 )
 
-if(grep("upper", UMI_bounded_filtering, ignore.case = TRUE)){
+if(grep("upper", option_arguments$UMI_bounded_filtering, ignore.case = TRUE)){
   monocle_object<-monocle_object[,pData(monocle_object)$Total_nUMI < upper_bound]
-} else if(grep("both", UMI_bounded_filtering, ignore.case = TRUE)){
+} else if(grep("both", option_arguments$UMI_bounded_filtering, ignore.case = TRUE)){
   monocle_object<-monocle_object[,pData(monocle_object)$Total_nUMI < upper_bound & pData(monocle_object)$Total_nUMI > lower_bound]
-} else if(is.null(UMI_bounded_filtering) | grep("none", UMI_bounded_filtering, ignore.case = TRUE)){
+} else if(is.null(option_arguments$UMI_bounded_filtering) | grep("none", option_arguments$UMI_bounded_filtering, ignore.case = TRUE)){
   print("Not filtering based on UMI counts")
 } else {
-  print("No boundries detected")
+  print("No boundries requested")
 }
 
 monocle_object<-detectGenes(monocle_object, min_expr = 0.1)
@@ -291,10 +311,10 @@ png_plotFunction(plot_pc_variance_explained(monocle_object, return_all = FALSE),
 # Perform clustering ------------------------------------------------------
 
 monocle_object<-reduceDimension(monocle_object,
-                                max_components = max_components,
-                                num_dim = num_dim,
+                                max_components = option_arguments$max_components,
+                                num_dim = option_arguments$num_dim,
                                 reduction_method = 'tSNE',
-                                residualModelFormulaStr = cca_variables,
+                                residualModelFormulaStr = option_arguments$cca_variables,
                                 verbose = TRUE)
 monocle_object<-clusterCells(monocle_object)
 
@@ -305,12 +325,11 @@ png_plotFunction(plot_cell_clusters(monocle_object, 1, 2, color = "orig.ident"),
 
 
 try(
-  if(color_by_seurat_res == TRUE){
+  if(option_arguments$cca_variables == TRUE){
     lapply(seurat_res[cycle_parameter = 1:length(seurat_res)], plotting_function = "cluster", the_object = monocle_object, cycle_plot_param)
   }
 )
 
-savehistory(file=paste(output_prefix, ".Rhistory", sep = ""))
 save.image(file=paste(output_prefix, ".RData", sep = ""))
 
 
@@ -361,13 +380,12 @@ try(
 )
 
 try(
-  if(color_by_seurat_res == TRUE){
+  if(option_arguments$cca_variables == TRUE){
     lapply(seurat_res[cycle_parameter = 1:length(seurat_res)], plotting_function = "trajectory", the_object = monocle_object, cycle_plot_param)
   }
 )
 
 
-savehistory(file=paste(output_prefix, ".Rhistory", sep = ""))
 saveRDS(monocle_object, file = paste(output_prefix, "_UnsupClustMonocle.rds", sep = ""))
 save.image(file=paste(output_prefix, ".RData", sep = ""))
 
