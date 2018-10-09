@@ -1,4 +1,3 @@
-
 # Process commandLine input -----------------------------------------------
 args<-commandArgs(trailingOnly = TRUE)
 
@@ -15,7 +14,6 @@ main<-function(){
            --vars_to_regress: variables to regress on (default = c(\"nUMI\", \"nGene\"))
            --perform_cca: whether or not to perform multi canonical clustering alignment")
   } else{
-    print("all good!")
     args<-paste(unlist(args), collapse = " ")
     args<-unlist(strsplit(args, "--"))[-1]
     option_arguments<-sapply(args, function(x){
@@ -37,6 +35,12 @@ main<-function(){
     }
     if(!("perform_cca" %in% names(option_arguments))){
       option_arguments$perform_cca<-FALSE
+      option_arguments$reduction_type <- "pca"
+    } else if(option_arguments$perform_cca == TRUE) {
+      option_arguments$projectName<-paste(option_arguments$projectName, "_cca", sep = "")
+        option_arguments$reduction_type <- "cca.aligned"
+    } else {
+      print("Can not identify reduction type for dimensional reduction")
     }
     return(option_arguments)
   }
@@ -45,9 +49,13 @@ main<-function(){
 option_arguments<-main()
 
 
-print(paste("Performing clustering on", option_arguments$data, sep = " "))
+print(paste("Performing clustering on", paste(option_arguments$data, collapse = ", "), 
+            "using", option_arguments$reduction_type, "dimensional reduction", sep = " "))
 print(paste("Creating files with the output name", option_arguments$projectName, sep = " "))
-print(paste("Running seurat with genome", option_arguments$genome, "on", option_arguments$max_pcs, "principle components at resolutions", option_arguments$resolutionList, "with regression vars", list(option_arguments$vars_to_regress), sep = " "))
+print(paste("Running seurat with genome", option_arguments$genome, 
+            "on", option_arguments$max_pcs, 
+            "principle components at resolutions", paste(option_arguments$resolutionList, collapse = ", "), 
+            "with regression vars", list(option_arguments$vars_to_regress), sep = " "))
 
 
 # Load libraries and user functions ----------------------------------------------------------
@@ -65,14 +73,6 @@ packages<-c("Seurat", "dplyr", "colorRamps")
 suppressMessages(ipak(packages))
 
 # Define script-specific functions ---------------------------------------------------
-
-# Set cca-dependent variables
-if(option_arguments$perform_cca == TRUE){
-  option_arguments$data<-paste(option_arguments$projectName, "_cca", sep = "")
-  reduction_type <- "cca.aligned"
-} else{
-  reduction_type <-"pca"
-}
 
 # Set mt_filtering-dependent variables
 if(option_arguments$mitoFilter == TRUE){
@@ -122,8 +122,10 @@ if(option_arguments$genome == "mm10"){
 
 # Create multi_object_list
 create_multi_object_list<-function(x){
+  print(x)
   cellranger_files<-paste(x[[1]], "/outs/filtered_gene_bc_matrices/",option_arguments$genome,"/", sep="")
-  names(cellranger_files)<-names(x)
+  names(cellranger_files)<-x
+  print(cellranger_files)
   my_object.data<-Read10X(cellranger_files)
   my_object<- CreateSeuratObject(raw.data = my_object.data, min.cells = 3, min.genes = 200, project = option_arguments$projectName)
   my_object<- create_percentMito_column(my_object)
@@ -134,8 +136,8 @@ create_multi_object_list<-function(x){
   my_object<-ScaleData(my_object, vars.to.regress = option_arguments$vars_to_regress)
   my_object<-CellCycleScoring(my_object, s.genes = s.genes, g2m.genes = g2m.genes, set.ident = FALSE)
 
-  my_object@meta.data$sample<-names(x)
-  multi_object_list[[names(x)]]<-my_object
+  my_object@meta.data$sample<-x
+  multi_object_list[[x]]<-my_object
 }
 
 # Read in 10XGenomics files - NO cca
@@ -145,7 +147,7 @@ read_10XGenomics_data<-function(x){
 
 
 
-# Create basic colour palette
+# Create basic colour palette ----------------------------------------------------------
 
 basic_color_palette<-c("#cb4bbe",
                        "lightskyblue",
@@ -188,7 +190,7 @@ adjust_palette_size <- function(object_length, basic_color_palette){
 if(option_arguments$perform_cca == TRUE){
   multi_object_list<-list()
   multi_object_list<-lapply(1:length(option_arguments$data), function(x) create_multi_object_list(option_arguments$data[x]))
-  names(multi_object_list)<-names(option_arguments$data)
+  names(multi_object_list)<-option_arguments$data
 
   genes.use<-c()
   for (i in 1:length(multi_object_list)){
@@ -231,6 +233,7 @@ if(option_arguments$perform_cca == TRUE){
 
   # filter_cells_and_genes(my_obj,min_UMIs=1000,max_UMIs=25000,min_detected_genes=1000,max_detected_genes=5000,max_percent_mito=9) <--Supat's filter
   data_files.list<-sapply(option_arguments$data[1:length(option_arguments$data)], function(x) read_10XGenomics_data(x))
+  print(data_files.list)
   my_object.data<-Read10X(data_files.list)
   my_object<- CreateSeuratObject(raw.data = my_object.data, min.cells = 3, min.genes = 200, project = option_arguments$projectName)
   my_object<- create_percentMito_column(my_object)
@@ -324,7 +327,7 @@ if(option_arguments$perform_cca == TRUE){
 
 for(resolution in option_arguments$resolutionList){
   resolution<-as.numeric(resolution)
-  my_object<-FindClusters(my_object, reduction.type = reduction_type, dims.use = 1:as.numeric(option_arguments$max_pcs), resolution = resolution, print.output = 0, save.SNN = TRUE)
+  my_object<-FindClusters(my_object, reduction.type = option_arguments$reduction_type, dims.use = 1:as.numeric(option_arguments$max_pcs), resolution = resolution, print.output = 0, save.SNN = TRUE)
   PrintFindClustersParams(my_object)
   my_object<-RunTSNE(my_object, dims.use = 1:as.numeric(option_arguments$max_pcs), do.fast = TRUE)
 
