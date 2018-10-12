@@ -67,7 +67,7 @@ option_arguments$max_components<-as.numeric(option_arguments$max_components)
 
 
 print(paste("Setting UMI bounded filtering to", option_arguments$UMI_bounded_filtering, sep = " "))
-print(paste("Setting correction variables as", option_arguments$cca_variables, sep = " "))
+print(paste("Setting correction variables as", list(option_arguments$cca_variables), sep = " "))
 print(paste("Will process", option_arguments$seurat_object_filename, "using", option_arguments$num_dim, "dimensions and", option_arguments$max_components, "components", sep = " "))
 
 
@@ -194,7 +194,7 @@ if(grepl(x = option_arguments$seurat_object_filename, pattern = "rds$", ignore.c
 
 seurat_varGenes<-seurat_object@var.genes
 
-if(option_arguments$cca_variables == TRUE){
+if(option_arguments$color_by_seurat_res == TRUE){
   seurat_res<-colnames(seurat_object@meta.data)[grep(x=colnames(seurat_object@meta.data), pattern = "^res")]
 }
 
@@ -246,11 +246,12 @@ adjust_palette_size <- function(object_length, basic_color_palette = basic_color
 monocle_object<-importCDS(seurat_object, import_all = FALSE)
 
 
-if(option_arguments$cca_variables == TRUE & "ident" %in% colnames(monocle_object@phenoData@data)){
-  adjust_palette_size(length(unique(monocle_object@ident)), basic_color_palette = basic_color_palette)
+if(option_arguments$color_by_seurat_res == TRUE){
+  adjust_palette_size(length(unique(seurat_object@ident)), basic_color_palette = basic_color_palette)
 } else{
   basic_color_palette = basic_color_palette
 }
+
 remove(seurat_object)
 gc()
 
@@ -284,7 +285,7 @@ png_plotFunction(qplot(Total_nUMI, data = pData(monocle_object), color = orig.id
                  filename = paste(output_prefix, "_nUMI_2SD-byID.png", sep = ""))
 
 try(
-  if(option_arguments$cca_variables == TRUE){
+  if(option_arguments$color_by_seurat_res == TRUE){
     lapply(seurat_res[1:length(seurat_res)], plotting_function = "qplot", the_object = monocle_object, cycle_plot_param)
   }
 )
@@ -319,7 +320,7 @@ monocle_object<-reduceDimension(monocle_object,
                                 max_components = option_arguments$max_components,
                                 num_dim = option_arguments$num_dim,
                                 reduction_method = 'tSNE',
-                                residualModelFormulaStr = option_arguments$cca_variables,
+                                residualModelFormulaStr = paste("~", paste(unlist(option_arguments$cca_variables), collapse = " + "), sep = ""),
                                 verbose = TRUE)
 monocle_object<-clusterCells(monocle_object)
 
@@ -330,7 +331,7 @@ png_plotFunction(plot_cell_clusters(monocle_object, 1, 2, color = "orig.ident"),
 
 
 try(
-  if(option_arguments$cca_variables == TRUE){
+  if(option_arguments$color_by_seurat_res == TRUE){
     lapply(seurat_res[cycle_parameter = 1:length(seurat_res)], plotting_function = "cluster", the_object = monocle_object, cycle_plot_param)
   }
 )
@@ -340,7 +341,7 @@ save.image(file=paste(output_prefix, ".RData", sep = ""))
 
 # Perform trajectory analysis with monocle-defined genes ------------------
 
-clustering_DEG_monocle<- differentialGeneTest(monocle_object[expressed_genes,], fullModelFormulaStr='~Cluster', cores=detectCores()-1)
+clustering_DEG_monocle<- differentialGeneTest(monocle_object[expressed_genes,], fullModelFormulaStr='~Cluster')
 #current default is to take top 1000 clustering_DEG_monocle genes
 
 monocleBased_orderedgenes<-row.names(clustering_DEG_monocle)[order(clustering_DEG_monocle$qval)][1:1000]

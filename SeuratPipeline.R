@@ -67,7 +67,7 @@ ipak <- function(pkg){
   sapply(pkg, library, character.only = TRUE)
 }
 
-packages<-c("Seurat", "dplyr", "colorRamps")
+packages<-c("Seurat", "dplyr", "colorRamps", "parallel")
 
 # Load libraries
 suppressMessages(ipak(packages))
@@ -96,6 +96,18 @@ png_plotFunction<-function(plot_to_make = x, filename = y, height = 800, width =
   png(filename = filename, height = height, width = width)
   plot_to_make
   dev.off()
+}
+
+# feature and violin plots for gene lists
+drawmyplot<-function(geneList, tsne.obj, name){
+  for(gene in geneList){
+    png(filename=paste("ViolinPlots/", name, "-Vln_",gene, ".png", sep=""), width=800, heigh=800)
+    try(print(VlnPlot(tsne.obj, gene, do.return = T, point.size.use = 0, cols.use = my_palette)))
+    dev.off()
+    png(filename=paste("FeaturePlots/", name, "-Ftr_",gene, ".png", sep=""), width=800, height=800)
+    try(FeaturePlot(tsne.obj, gene,cols.use=c("grey", "blue"), pt.size = 1, do.return = T))
+    dev.off()
+  }
 }
 
 # define PCA plotting function that colors one variable red and all others black, and cycles through ##can change colors, too
@@ -133,7 +145,7 @@ create_multi_object_list<-function(x){
   my_object<-NormalizeData(my_object, normalization.method = "LogNormalize", scale.factor = 10000)
   my_object<-FindVariableGenes(my_object,mean.function = ExpMean, dispersion.function = LogVMR, x.low.cutoff = 0.0125, x.high.cutoff = 3, y.cutoff = 0.5)
 
-  my_object<-ScaleData(my_object, vars.to.regress = option_arguments$vars_to_regress)
+  my_object<-ScaleData(my_object, vars.to.regress = option_arguments$vars_to_regress, do.par = TRUE, num.cores = detectCores()-1)
   my_object<-CellCycleScoring(my_object, s.genes = s.genes, g2m.genes = g2m.genes, set.ident = FALSE)
 
   my_object@meta.data$sample<-x
@@ -178,7 +190,7 @@ basic_color_palette<-c("#cb4bbe",
 # Adjust colour palette
 adjust_palette_size <- function(object_length, basic_color_palette){
   if(length(unique(object_length)) > length(basic_color_palette)){
-    new_length <- length(unique(object_length@ident)) - length(basic_color_palette)
+    new_length <- length(unique(object_length)) - length(basic_color_palette)
     my_palette <- c(basic_color_palette, primary.colors(new_length))
   } else {
     my_palette <- basic_color_palette
@@ -308,7 +320,7 @@ if(option_arguments$perform_cca == TRUE){
 
   # Find statistically signficant principal components -----------------------
 
-  my_object<-JackStraw(my_object, num.replicate = 100, num.pc = as.numeric(option_arguments$max_pcs), display.progress = TRUE)
+  my_object<-JackStraw(my_object, num.replicate = 100, num.pc = as.numeric(option_arguments$max_pcs), display.progress = TRUE, do.par = TRUE, num.cores = detectCores()-1)
 
   PCElbowPlot(my_object)
   JackStrawPlot(my_object, PCs = 1:as.numeric(option_arguments$max_pcs))
@@ -323,13 +335,23 @@ if(option_arguments$perform_cca == TRUE){
 
 }
 
+# Write object for monocle-import
+
+try(saveRDS(my_object, file = paste(option_arguments$projectName, "monocle object.rds", sep = "")), silent = FALSE)
+
+
+# create folders for feature plots
+
+suppressWarnings(dir.create("ViolinPlots"))
+suppressWarnings(dir.create("FeaturePlots"))
+
 # Clustering --------------------------------------------------------------
 
 for(resolution in option_arguments$resolutionList){
   resolution<-as.numeric(resolution)
   my_object<-FindClusters(my_object, reduction.type = option_arguments$reduction_type, dims.use = 1:as.numeric(option_arguments$max_pcs), resolution = resolution, print.output = 0, save.SNN = TRUE)
   PrintFindClustersParams(my_object)
-  my_object<-RunTSNE(my_object, dims.use = 1:as.numeric(option_arguments$max_pcs), do.fast = TRUE)
+  my_object<-RunTSNE(my_object, dims.use = 1:as.numeric(option_arguments$max_pcs), do.fast = TRUE, reduction.use = option_arguments$reduction_type)
 
   my_palette<-adjust_palette_size(my_object@ident, basic_color_palette)
 
@@ -390,9 +412,13 @@ for(resolution in option_arguments$resolutionList){
   # Print gene plots --------------------------------------------------------
 
   geneList = c("Nfe2", "Gata1", "Gata2", "Hbg1", "Hbg2", "Zfpm1", "Hbb", "Hba1","Hba2", "Hbd", "Hbe1", "Klf1", "Fli1", "Meis1", "Kit", "Vwf", "Pf4", "Mpo", "Runx1", "Csf1", "Tfr2", "Cnrip1", "Myc" ,"Tk1", "Rrm2", "Itga2b", "Lmna", "Nfia", "Gp1bb", "Plek", "Pbx1", "Hes6", "E2f4","Dntt", "Vpreb1", "Id3", "Atf3", "Jchain", "Cd79a", "Satb1", "Sp140", "Tgfbi", "Lgmn", "Irf8", "Irf7", "Tcf4",  "Batf3", "Tcf19", "Sell", "Cd52", "Hoxb5", "Gata3", "Eno1", "Mpo", "Atp8b4", "Spi1", "Mafk", "Hdc", "Prg2", "Lmo4","Ctsg","Elane", "Cebpa", "Lgals1", "Fosb", "Prtn3",  "Tfrc", "Mpl", "Flt3", "Ca1", "Cd177", "Cd180","Cd244","Cd24","Cd27","Cd34","Cd37","Cd47","Cd48","Cd52","Cd53","Cd63","Cd68","Cd69","Cd72","Cd74","Cd81","Cd82","Cd84","Cd9","Cd93", "Mt1a", "Mt1g", "Mt1f", "Mt1e", "Mt1x")
-  suppressWarnings(drawmyplot(geneList, my_object, name = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution, sep = "")))
-
   housekeepingGenes<-c("Actb", "Gapdh", "Rn18s", "Ppia", "Rpl13a", "Rplp0","B2m", "Hmbs", "Pgk1", "Alas1", "Gusb", "Sdha", "Tbp", "Tubb", "Ywhaz")
+  if(option_arguments$genome == "GRCh38"){
+    geneList <- toupper(geneList)
+    housekeepingGenes<-toupper(housekeepingGenes)
+  }
+  
+  suppressWarnings(drawmyplot(geneList, my_object, name = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution, sep = "")))
   suppressWarnings(drawmyplot(geneList, my_object, name = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res", resolution, "-HKgene", sep = "")))
 
   # Tabulate data -----------------------------------------------------------
@@ -423,6 +449,7 @@ for(resolution in option_arguments$resolutionList){
   write.table(avgexp, file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"_AvgXprsn.txt", sep = ""), row.names = TRUE, quote = FALSE, sep = "\t")
 
 }
+
 try(saveRDS(my_object, file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"FINALPRINT_tsne.rds", sep = "")), silent = FALSE)
 try(savehistory(file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,".Rhistory", sep = "")), silent = FALSE)
 try(save.image(file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,".RData", sep = "")), silent = FALSE)
