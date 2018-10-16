@@ -1,8 +1,21 @@
 # Process commandLine input -----------------------------------------------
 args<-commandArgs(trailingOnly = TRUE)
+print(args)
 
 main<-function(){
-  if(!(all(c("--data", "--projectName", "--genome", "--max_pcs", "--resolutionList") %in% unlist(args)))){
+  args<-paste(unlist(args), collapse = " ")
+  args<-unlist(strsplit(args, "--"))[-1]
+  option_arguments<-sapply(args, function(x){
+    unlist(strsplit(x, " "))[-1]
+  })
+  option_names<-sapply(args, function(x){
+    unlist(strsplit(x, " "))[1]
+  })
+  names(option_arguments) <- unlist(option_names)
+  required_keys<-c("data", "projectName", "genome", "max_pcs", "resolutionList")
+  
+  if(!(all(required_keys %in% unlist(args)))){
+    print(paste("Missing:", paste(required_list[!(required_list%in%names(option_arguments))], collapse = " "), sep = " "))
     stop("Required arguments:
            --data: folders containing outs files (space seprated)
            --projectName: name to append to printed files
@@ -14,16 +27,6 @@ main<-function(){
            --vars_to_regress: variables to regress on (default = c(\"nUMI\", \"nGene\"))
            --perform_cca: whether or not to perform multi canonical clustering alignment")
   } else{
-    args<-paste(unlist(args), collapse = " ")
-    args<-unlist(strsplit(args, "--"))[-1]
-    option_arguments<-sapply(args, function(x){
-      unlist(strsplit(x, " "))[-1]
-    })
-    option_names<-sapply(args, function(x){
-      unlist(strsplit(x, " "))[1]
-    })
-    names(option_arguments) <- unlist(option_names)
-
     if(!("mitoFilter" %in% names(option_arguments))){
       print("Not filtering based on mt-gene expression")
       option_arguments$mitoFilter<-FALSE

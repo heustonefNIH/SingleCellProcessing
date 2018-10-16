@@ -1,8 +1,21 @@
 # Process commandLine input -----------------------------------------------
 args<-commandArgs(trailingOnly = TRUE)
+print(args)
 
 main<-function(){
-  if(!(all(c("--seurat_object_filename", "--num_dim") %in% unlist(args)))){
+  args<-paste(unlist(args), collapse = " ")
+  args<-unlist(strsplit(args, "--"))[-1]
+  option_arguments<-sapply(args, function(x){
+    unlist(strsplit(x, " "))[-1]
+  })
+  option_names<-sapply(args, function(x){
+    unlist(strsplit(x, " "))[1]
+  })
+  names(option_arguments) <- unlist(option_names)
+  required_keys<-c("seurat_object_filename", "num_dim")
+  
+  if(!(all(required_keys %in% unlist(args)))){
+    print(paste("Missing:", paste(required_list[!(required_list%in%names(option_arguments))], collapse = " "), sep = " "))
     stop("Required arguments:
            --seurat_object_filename: name of seurat object to import (note: file must have .Robj or .rds extension)
            --num_dim: dimensionality of the reduced space
@@ -15,18 +28,6 @@ main<-function(){
            --cca_variables: (default = \"~nUMI + nGene\")
            --perform_de: should differential gene expression be calculated (default = TRUE)")
   } else{
-    print("all good!")
-    args<-paste(unlist(args), collapse = " ")
-    args<-unlist(strsplit(args, "--"))[-1]
-    option_arguments<-sapply(args, function(x){
-      unlist(strsplit(x, " "))[-1]
-    })
-    option_names<-sapply(args, function(x){
-      unlist(strsplit(x, " "))[1]
-    })
-    names(option_arguments) <- unlist(option_names)
-    
-    
     if(!("max_components" %in% names(option_arguments))){
       print("Not filtering expression values")
       option_arguments$max_components<-2
@@ -79,7 +80,7 @@ ipak <- function(pkg){
     install.packages(new.pkg, dependencies = TRUE)
   sapply(pkg, library, character.only = TRUE)
 }
-packages<-c("Seurat", "monocle", "plyr", "dplyr", "colorRamps", "stringr")
+packages<-c("Seurat", "monocle", "plyr", "dplyr", "colorRamps", "stringr", "future")
 suppressMessages(ipak(packages))
 
 if(!("MyPlotTrajectoryPackage" %in% installed.packages())){
@@ -403,7 +404,7 @@ if(perform_de ==TRUE){
   # Hard-coding to use Seurat vargenes as markers... ?
   marker_genes <-row.names(subset(fData(monocle_object), gene_short_name %in% seurat_varGenes))
   diff_test_res <-differentialGeneTest(monocle_object[marker_genes,],
-                                       cores = detectCores()-1, 
+                                       cores = future::availableCores(), 
                                        fullModelFormulaStr = "~Cluster") # ASSUMING CLUSTER IS TEH CORRECT FULL MODEL FORMULA STRING
   sig_genes<-subset(diff_test_res, qval < 0.1) # Set for FDR < 10%
   sig_genes[,c("gene_short_name", "pval", "qval")]
