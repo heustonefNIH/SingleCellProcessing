@@ -14,7 +14,7 @@ main<-function(){
   names(option_arguments) <- unlist(option_names)
   required_keys<-c("seurat_object_filename", "num_dim")
   
-  if(!(all(required_keys %in% unlist(args)))){
+  if(!(all(required_keys %in% names(option_arguments)))){
     print(paste("Missing:", paste(required_list[!(required_list%in%names(option_arguments))], collapse = " "), sep = " "))
     stop("Required arguments:
            --seurat_object_filename: name of seurat object to import (note: file must have .Robj or .rds extension)
@@ -27,21 +27,7 @@ main<-function(){
            --UMI_bounded_filtering: (default = \"upper\", can be \"upper\", \"lower\", \"both\", or \"none\")
            --cca_variables: (default = \"~nUMI + nGene\")")
   } else{
-<<<<<<< HEAD
-    print("all good!")
-    args<-paste(unlist(args), collapse = " ")
-    args<-unlist(strsplit(args, "--"))[-1]
-    option_arguments<-sapply(args, function(x){
-      unlist(strsplit(x, " "))[-1]
-    })
-    option_names<-sapply(args, function(x){
-      unlist(strsplit(x, " "))[1]
-    })
-    names(option_arguments) <- unlist(option_names)
-
-
-=======
->>>>>>> cd142d8... Fixes to clarify error handeling
+    
     if(!("max_components" %in% names(option_arguments))){
       print("Not filtering expression values")
       option_arguments$max_components<-2
@@ -66,9 +52,9 @@ main<-function(){
       print("Not ordering by seurat_varGenes")
       option_arguments$cca_variables<- "~nUMI + nGene"
     }
-
+    
     return(option_arguments)
-
+    
   }
 }
 
@@ -127,7 +113,7 @@ cycle_plot_param<-function(plotting_function, cycle_parameter, the_object){
   }
   new_length
   basic_color_palette<-c(basic_color_palette, primary.colors(new_length))
-
+  
   if(plotting_function == "cluster"){
     png_plotFunction(my_plot_cell_clusters(the_object, 1, 2, color = cycle_parameter, point_colors = basic_color_palette) +
                        ggtitle(paste(output_prefix, "-", cycle_parameter, sep = "")),
@@ -146,7 +132,7 @@ cycle_plot_param<-function(plotting_function, cycle_parameter, the_object){
                      filename = paste(output_prefix, "_clstr-orig.identFACET.png", sep = ""),
                      height = 1600,
                      width = 1600)
-
+    
   }
   if(plotting_function == "trajectory"){
     png_plotFunction(my_plot_cell_trajectory(the_object,
@@ -187,7 +173,7 @@ cycle_plot_param<-function(plotting_function, cycle_parameter, the_object){
                        geom_vline(xintercept = lower_bound) +
                        ggtitle(paste(output_prefix, "-", cycle_parameter, sep = "")),
                      filename = paste(output_prefix, "_nUMI_2SD-by", cycle_parameter,".png", sep = ""))
-
+    
   }
 }
 
@@ -406,25 +392,18 @@ try(
 saveRDS(monocle_object, file = paste(output_prefix, "_UnsupClustMonocle.rds", sep = ""))
 save.image(file=paste(output_prefix, ".RData", sep = ""))
 
-<<<<<<< HEAD
-=======
-#
 
 # Basic differential expression analysis ----------------------------------
 
-if(perform_de ==TRUE){
-  # Hard-coding to use Seurat vargenes as markers... ?
-  marker_genes <-row.names(subset(fData(monocle_object), gene_short_name %in% seurat_varGenes))
-  diff_test_res <-differentialGeneTest(monocle_object[marker_genes,],
-                                       cores = future::availableCores(), 
-                                       fullModelFormulaStr = "~Cluster") # ASSUMING CLUSTER IS TEH CORRECT FULL MODEL FORMULA STRING
-  sig_genes<-subset(diff_test_res, qval < 0.1) # Set for FDR < 10%
-  sig_genes[,c("gene_short_name", "pval", "qval")]
-  write.table(sig_genes, file = paste(output_prefix, "_differentiallyExpressed_seuratVar.txt", sep = ""), quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
-}
+# Hard-coding to use Seurat vargenes as markers... ?
+marker_genes <-row.names(subset(fData(monocle_object), gene_short_name %in% seurat_varGenes))
+diff_test_res <-differentialGeneTest(monocle_object[marker_genes,],
+                                     cores = future::availableCores(), 
+                                     fullModelFormulaStr = "~Cluster") # ASSUMING CLUSTER IS TEH CORRECT FULL MODEL FORMULA STRING
+sig_genes<-subset(diff_test_res, qval < 0.1) # Set for FDR < 10%
+sig_genes[,c("gene_short_name", "pval", "qval")]
+write.table(sig_genes, file = paste(output_prefix, "_differentiallyExpressed_seuratVar.txt", sep = ""), quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
 
 
-
->>>>>>> cd142d8... Fixes to clarify error handeling
 
 

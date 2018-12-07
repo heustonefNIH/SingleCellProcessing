@@ -314,10 +314,10 @@ for(resolution in resolution_list){
   # Create 3d tSNE ----------------------------------------------------------
   my_object3d<-data.matrix(my_object@dr$tsne@cell.embeddings)
   scatterplot3d(x=my_object3d[,1], y=my_object3d[,2], z=my_object3d[,3], color=c("red"))
-  plot3d(x=my_object3d[,1], y=my_object3d[,2], z=my_object3d[,3],col = my_palette[my_object@ident], box=FALSE, axes=FALSE, xlab = "", ylab = "", zlab = "")
+  plot3d(x=my_object3d[,1], y=my_object3d[,2], z=my_object3d[,3],col = basic_color_palette[my_object@ident], box=FALSE, axes=FALSE, xlab = "", ylab = "", zlab = "")
   par3d("windowRect" = c(122,44,950,929))
   rgl.viewpoint(zoom=.6)
-  animation_dir<-paste(output_prefix, "_animation", sep = "")
+  animation_dir<-paste("msAggr_dim36res2_3ddim36res0.6_3dTSNEanimation", sep = "")
   dir.create(animation_dir)
   for (i in 1:90) {
   view3d(userMatrix=rotationMatrix(2*pi * i/90, 1, -1, -1), zoom=0.6)

@@ -1,4 +1,3 @@
-
 # Process commandLine input -----------------------------------------------
 args<-commandArgs(trailingOnly = TRUE)
 print(args)
@@ -15,8 +14,8 @@ main<-function(){
   names(option_arguments) <- unlist(option_names)
   required_keys<-c("data", "projectName", "genome", "max_pcs", "resolutionList")
   
-  if(!(all(required_keys %in% unlist(args)))){
-    print(paste("Missing:", paste(required_list[!(required_list%in%names(option_arguments))], collapse = " "), sep = " "))
+  if(!(all(required_keys %in% names(option_arguments)))){
+    print(paste("Missing:", paste(required_keys[!(required_keys%in%names(option_arguments))], collapse = " "), sep = " "))
     stop("Required arguments:
            --data: folders containing outs files (space seprated)
            --projectName: name to append to printed files
@@ -28,20 +27,6 @@ main<-function(){
            --vars_to_regress: variables to regress on (default = c(\"nUMI\", \"nGene\"))
            --perform_cca: whether or not to perform multi canonical clustering alignment")
   } else{
-<<<<<<< HEAD
-    print("all good!")
-    args<-paste(unlist(args), collapse = " ")
-    args<-unlist(strsplit(args, "--"))[-1]
-    option_arguments<-sapply(args, function(x){
-      unlist(strsplit(x, " "))[-1]
-    })
-    option_names<-sapply(args, function(x){
-      unlist(strsplit(x, " "))[1]
-    })
-    names(option_arguments) <- unlist(option_names)
-
-=======
->>>>>>> cd142d8... Fixes to clarify error handeling
     if(!("mitoFilter" %in% names(option_arguments))){
       print("Not filtering based on mt-gene expression")
       option_arguments$mitoFilter<-FALSE
@@ -60,10 +45,9 @@ main<-function(){
 
 option_arguments<-main()
 
-
-print(paste("Performing clustering on", option_arguments$data, sep = " "))
+print(paste("Performing clustering on", paste(option_arguments$data, collapse = " "), sep = " "))
 print(paste("Creating files with the output name", option_arguments$projectName, sep = " "))
-print(paste("Running seurat with genome", option_arguments$genome, "on", option_arguments$max_pcs, "principle components at resolutions", option_arguments$resolutionList, "with regression vars", list(option_arguments$vars_to_regress), sep = " "))
+print(paste("Running seurat with genome", option_arguments$genome, "on", option_arguments$max_pcs, "principle components at resolutions", option_arguments$resolutionList, "with regression vars", paste(option_arguments$vars_to_regress, collapse = " "), sep = " "))
 
 
 # Load libraries and user functions ----------------------------------------------------------
@@ -75,7 +59,7 @@ ipak <- function(pkg){
   sapply(pkg, library, character.only = TRUE)
 }
 
-packages<-c("Seurat", "dplyr", "colorRamps", "parallel")
+packages<-c("Seurat", "dplyr", "colorRamps", "parallel", "future")
 
 # Load libraries
 suppressMessages(ipak(packages))
@@ -84,10 +68,12 @@ suppressMessages(ipak(packages))
 
 # Set cca-dependent variables
 if(option_arguments$perform_cca == TRUE){
-  option_arguments$data<-paste(option_arguments$projectName, "_cca", sep = "")
+  option_arguments$projectName<-paste(option_arguments$projectName, "_cca", sep = "")
   reduction_type <- "cca.aligned"
+  tsne_reduction_input <- "cca.aligned"
 } else{
   reduction_type <-"pca"
+  tsne_reduction_input <- "PCA"
 }
 
 # Set mt_filtering-dependent variables
@@ -150,6 +136,7 @@ if(option_arguments$genome == "mm10"){
 
 # Create multi_object_list
 create_multi_object_list<-function(x){
+  print(paste("reading", paste(x, "/outs/filtered_gene_bc_matrices/",option_arguments$genome,"/", sep=""), sep = " "))
   cellranger_files<-paste(x[[1]], "/outs/filtered_gene_bc_matrices/",option_arguments$genome,"/", sep="")
   names(cellranger_files)<-names(x)
   my_object.data<-Read10X(cellranger_files)
@@ -159,15 +146,16 @@ create_multi_object_list<-function(x){
   my_object<-NormalizeData(my_object, normalization.method = "LogNormalize", scale.factor = 10000)
   my_object<-FindVariableGenes(my_object,mean.function = ExpMean, dispersion.function = LogVMR, x.low.cutoff = 0.0125, x.high.cutoff = 3, y.cutoff = 0.5)
 
-  my_object<-ScaleData(my_object, vars.to.regress = option_arguments$vars_to_regress, do.par = TRUE, num.cores = detectCores()-1)
+  my_object<-ScaleData(my_object, vars.to.regress = option_arguments$vars_to_regress, do.par = TRUE, num.cores = future::availableCores())
   my_object<-CellCycleScoring(my_object, s.genes = s.genes, g2m.genes = g2m.genes, set.ident = FALSE)
 
   my_object@meta.data$sample<-names(x)
-  multi_object_list[[names(x)]]<-my_object
+  multi_object_list[[(x)]]<-my_object
 }
 
 # Read in 10XGenomics files - NO cca
 read_10XGenomics_data<-function(x){
+  print(paste("reading", paste(x, "/outs/filtered_gene_bc_matrices/",option_arguments$genome,"/", sep=""), sep = " "))
   x = paste(x, "/outs/filtered_gene_bc_matrices/",option_arguments$genome,"/", sep="")
 }
 
@@ -217,6 +205,7 @@ if(option_arguments$perform_cca == TRUE){
   multi_object_list<-list()
   multi_object_list<-lapply(1:length(option_arguments$data), function(x) create_multi_object_list(option_arguments$data[x]))
   names(multi_object_list)<-names(option_arguments$data)
+  print(multi_object_list)
 
   genes.use<-c()
   for (i in 1:length(multi_object_list)){
@@ -333,7 +322,7 @@ if(option_arguments$perform_cca == TRUE){
 
   # Find statistically signficant principal components -----------------------
 
-  my_object<-JackStraw(my_object, num.replicate = 100, num.pc = as.numeric(option_arguments$max_pcs), display.progress = TRUE, do.par = TRUE, num.cores = detectCores()-1)
+  my_object<-JackStraw(my_object, num.replicate = 100, num.pc = as.numeric(option_arguments$max_pcs), display.progress = TRUE, do.par = TRUE, num.cores = future::availableCores())
 
   PCElbowPlot(my_object)
   JackStrawPlot(my_object, PCs = 1:as.numeric(option_arguments$max_pcs))
@@ -364,7 +353,7 @@ for(resolution in option_arguments$resolutionList){
   resolution<-as.numeric(resolution)
   my_object<-FindClusters(my_object, reduction.type = reduction_type, dims.use = 1:as.numeric(option_arguments$max_pcs), resolution = resolution, print.output = 0, save.SNN = TRUE)
   PrintFindClustersParams(my_object)
-  my_object<-RunTSNE(my_object, dims.use = 1:as.numeric(option_arguments$max_pcs), do.fast = TRUE, reduction.use = option_arguments$reduction_type)
+  my_object<-RunTSNE(my_object, dims.use = 1:as.numeric(option_arguments$max_pcs), do.fast = TRUE, reduction.use = tsne_reduction_input)
 
   my_palette<-adjust_palette_size(my_object@ident, basic_color_palette)
 
@@ -464,5 +453,5 @@ for(resolution in option_arguments$resolutionList){
 }
 
 try(saveRDS(my_object, file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"FINALPRINT_tsne.rds", sep = "")), silent = FALSE)
-try(savehistory(file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,".Rhistory", sep = "")), silent = FALSE)
 try(save.image(file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,".RData", sep = "")), silent = FALSE)
+
