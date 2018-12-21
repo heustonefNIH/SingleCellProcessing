@@ -22,10 +22,12 @@ main<-function(){
            --genome: genome (mm10 or GRCh38)
            --max_pcs: dimensionality of reduced space 
            --resolutionList:
-           Additional arguments:
+          Additional arguments:
            --mitoFilter: whether or not to correct for cell cycle stage (default = FALSE)
            --vars_to_regress: variables to regress on (default = c(\"nUMI\", \"nGene\"))
-           --perform_cca: whether or not to perform multi canonical clustering alignment")
+           --perform_cca: whether or not to perform multi canonical clustering alignment
+         Sample Input:
+           --R --vanilla < SeuratPipeline.R --args --data DBA526B DBA526C DBA677 --projectName 20181207_pbDBA --genome GRCh38 --max_pcs 20 --resolutionList 1.0 --perform_cca TRUE")
   } else{
     if(!("mitoFilter" %in% names(option_arguments))){
       print("Not filtering based on mt-gene expression")
@@ -137,21 +139,23 @@ if(option_arguments$genome == "mm10"){
 # Create multi_object_list
 create_multi_object_list<-function(x){
   print(paste("reading", paste(x, "/outs/filtered_gene_bc_matrices/",option_arguments$genome,"/", sep=""), sep = " "))
-  cellranger_files<-paste(x[[1]], "/outs/filtered_gene_bc_matrices/",option_arguments$genome,"/", sep="")
-  names(cellranger_files)<-names(x)
+  cellranger_files<-paste(x, "/outs/filtered_gene_bc_matrices/",option_arguments$genome,"/", sep="")
+  # names(cellranger_files)<-names(x)
   my_object.data<-Read10X(cellranger_files)
   my_object<- CreateSeuratObject(raw.data = my_object.data, min.cells = 3, min.genes = 200, project = option_arguments$projectName)
+  my_object<-RenameCells(my_object, add.cell.id = x)
+  print(head(my_object@cell.names))
   my_object<- create_percentMito_column(my_object)
-
   my_object<-NormalizeData(my_object, normalization.method = "LogNormalize", scale.factor = 10000)
   my_object<-FindVariableGenes(my_object,mean.function = ExpMean, dispersion.function = LogVMR, x.low.cutoff = 0.0125, x.high.cutoff = 3, y.cutoff = 0.5)
-
   my_object<-ScaleData(my_object, vars.to.regress = option_arguments$vars_to_regress, do.par = TRUE, num.cores = future::availableCores())
   my_object<-CellCycleScoring(my_object, s.genes = s.genes, g2m.genes = g2m.genes, set.ident = FALSE)
+  my_object@meta.data$orig.ident<-x
+  
+  multi_object_list$x<-my_object
 
-  my_object@meta.data$sample<-names(x)
-  multi_object_list[[(x)]]<-my_object
 }
+
 
 # Read in 10XGenomics files - NO cca
 read_10XGenomics_data<-function(x){
@@ -204,9 +208,9 @@ adjust_palette_size <- function(object_length, basic_color_palette){
 if(option_arguments$perform_cca == TRUE){
   multi_object_list<-list()
   multi_object_list<-lapply(1:length(option_arguments$data), function(x) create_multi_object_list(option_arguments$data[x]))
-  names(multi_object_list)<-names(option_arguments$data)
-  print(multi_object_list)
-
+  names(multi_object_list)<-option_arguments$data
+  multi_object_list
+  
   genes.use<-c()
   for (i in 1:length(multi_object_list)){
     if(length(multi_object_list[[i]]@var.genes)>=1000){
@@ -222,8 +226,11 @@ if(option_arguments$perform_cca == TRUE){
     genes.use<-genes.use[genes.use %in% rownames(multi_object_list[[i]]@scale.data)]
   }
 
-  my_object<-RunMultiCCA(multi_object_list, genes.use = genes.use, num.ccs = as.numeric(option_arguments$max_pcs))
-
+  if(length(multi_object_list) >=3){
+    my_object<-RunMultiCCA(multi_object_list, genes.use = genes.use, num.ccs = as.numeric(option_arguments$max_pcs))
+  } else if(length(multi_object_list) == 2){
+    my_object<- RunCCA(object = multi_object_list[[1]], object2 = multi_object_list[[2]], num.cc = as.numeric(option_arguments$max_pcs))
+  }
   p1<-DimPlot(my_object, reduction.use="cca", group.by="orig.ident", do.return=TRUE)
   p2<-VlnPlot(my_object, features.plot="CC1", group.by = "orig.ident", do.return = TRUE)
 
@@ -232,7 +239,7 @@ if(option_arguments$perform_cca == TRUE){
   dev.off()
 
   png(filename = paste(option_arguments$projectName,"_dim",option_arguments$max_pcs, "_BicorPlot.png", sep = ""), height = 800, width = 800)
-  MetageneBicorPlot(my_object, grouping.var = "sample", dims.eval = 1:as.numeric(option_arguments$max_pcs))
+  MetageneBicorPlot(my_object, grouping.var = "orig.ident", dims.eval = 1:as.numeric(option_arguments$max_pcs))
   dev.off()
 
   png(filename = paste(option_arguments$projectName,"_dim",option_arguments$max_pcs, "_Heatmap.png", sep = ""), height = 2400, width = 800)
@@ -240,9 +247,9 @@ if(option_arguments$perform_cca == TRUE){
   dev.off()
 
 
-  my_object<-CalcVarExpRatio(my_object, reduction.type = "pca", grouping.var = "sample", dims.use = 1:as.numeric(option_arguments$max_pcs))
+  my_object<-CalcVarExpRatio(my_object, reduction.type = "pca", grouping.var = "orig.ident", dims.use = 1:as.numeric(option_arguments$max_pcs))
   my_object<-SubsetData(my_object, subset.name = "var.ratio.pca", accept.low = 0.5)
-  my_object<-AlignSubspace(my_object, reduction.type = "cca", grouping.var = "sample", dims.align = 1:as.numeric(option_arguments$max_pcs))
+  my_object<-AlignSubspace(my_object, reduction.type = "cca", grouping.var = "orig.ident", dims.align = 1:as.numeric(option_arguments$max_pcs))
 
 } else {
 
@@ -339,7 +346,7 @@ if(option_arguments$perform_cca == TRUE){
 
 # Write object for monocle-import
 
-try(saveRDS(my_object, file = paste(option_arguments$projectName, "monocle object.rds", sep = "")), silent = FALSE)
+try(saveRDS(my_object, file = paste(option_arguments$projectName, "_monocleObject.rds", sep = "")), silent = FALSE)
 
 
 # create folders for feature plots
@@ -452,6 +459,6 @@ for(resolution in option_arguments$resolutionList){
 
 }
 
-try(saveRDS(my_object, file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"FINALPRINT_tsne.rds", sep = "")), silent = FALSE)
-try(save.image(file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,".RData", sep = "")), silent = FALSE)
+try(saveRDS(my_object, file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "-FINAL_tsne.rds", sep = "")), silent = FALSE)
+try(save.image(file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "-FINAL.RData", sep = "")), silent = FALSE)
 
