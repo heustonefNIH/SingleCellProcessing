@@ -27,7 +27,7 @@ main<-function(){
            --vars_to_regress: variables to regress on (default = c(\"nUMI\", \"nGene\"))
            --perform_cca: whether or not to perform multi canonical clustering alignment
          Sample Input:
-           --R --vanilla < SeuratPipeline.R --args --data DBA526B DBA526C DBA677 --projectName 20181207_pbDBA --genome GRCh38 --max_pcs 20 --resolutionList 1.0 --perform_cca TRUE")
+           R --vanilla < SeuratPipeline.R --args --data DBA526B DBA526C DBA677 --projectName 20181207_pbDBA --genome GRCh38 --max_pcs 20 --resolutionList 1.0 --perform_cca TRUE")
   } else{
     if(!("mitoFilter" %in% names(option_arguments))){
       print("Not filtering based on mt-gene expression")
@@ -61,7 +61,7 @@ ipak <- function(pkg){
   sapply(pkg, library, character.only = TRUE)
 }
 
-packages<-c("Seurat", "dplyr", "colorRamps", "parallel", "future")
+packages<-c("Seurat", "dplyr", "colorRamps", "parallel", "future", "R.utils")
 
 # Load libraries
 suppressMessages(ipak(packages))
@@ -138,9 +138,17 @@ if(option_arguments$genome == "mm10"){
 
 # Create multi_object_list
 create_multi_object_list<-function(x){
-  print(paste("reading", paste(x, "/outs/filtered_gene_bc_matrices/",option_arguments$genome,"/", sep=""), sep = " "))
-  cellranger_files<-paste(x, "/outs/filtered_gene_bc_matrices/",option_arguments$genome,"/", sep="")
+  # print(paste("reading", paste(x, "/outs/filtered_feature_bc_matrix.h5", sep=""), sep = " "))
+  # cellranger_files<-paste(x, "/outs/filtered_feature_bc_matrix.h5", sep="")
+  print("Unzipping cellranger zips")
+  cellranger_zips<-paste(x, "/outs/filtered_feature_bc_matrix/", 
+                         grep(pattern="gz$", x = list.files(paste(x, "/outs/filtered_feature_bc_matrix/", sep = "")), value = TRUE), 
+                         sep="")
+  lapply(cellranger_zips, gunzip, remove=FALSE)
   # names(cellranger_files)<-names(x)
+  file.rename(from = paste(x, "/outs/filtered_feature_bc_matrix/features.tsv", sep=""), to = paste(x, "/outs/filtered_feature_bc_matrix/genes.tsv", sep=""))
+  print(paste("reading", paste(x, "/outs/filtered_feature_bc_matrix/", sep=""), sep = " "))
+  cellranger_files<-paste(x, "/outs/filtered_feature_bc_matrix/", sep="")
   my_object.data<-Read10X(cellranger_files)
   my_object<- CreateSeuratObject(raw.data = my_object.data, min.cells = 3, min.genes = 200, project = option_arguments$projectName)
   my_object<-RenameCells(my_object, add.cell.id = x)
