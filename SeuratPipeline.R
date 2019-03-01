@@ -138,15 +138,16 @@ if(option_arguments$genome == "mm10"){
 
 # Create multi_object_list
 create_multi_object_list<-function(x){
-  # print(paste("reading", paste(x, "/outs/filtered_feature_bc_matrix.h5", sep=""), sep = " "))
-  # cellranger_files<-paste(x, "/outs/filtered_feature_bc_matrix.h5", sep="")
-  print("Unzipping cellranger zips")
-  cellranger_zips<-paste(x, "/outs/filtered_feature_bc_matrix/", 
-                         grep(pattern="gz$", x = list.files(paste(x, "/outs/filtered_feature_bc_matrix/", sep = "")), value = TRUE), 
-                         sep="")
-  lapply(cellranger_zips, gunzip, remove=FALSE)
-  # names(cellranger_files)<-names(x)
-  file.rename(from = paste(x, "/outs/filtered_feature_bc_matrix/features.tsv", sep=""), to = paste(x, "/outs/filtered_feature_bc_matrix/genes.tsv", sep=""))
+  
+  if(!any(grepl(pattern="gz$", x = list.files(paste(x, "/outs/filtered_feature_bc_matrix/", sep = "")), value = FALSE))){
+    print("Unzipping cellranger zips")
+    cellranger_zips<-paste(x, "/outs/filtered_feature_bc_matrix/", 
+                           grep(pattern="gz$", x = list.files(paste(x, "/outs/filtered_feature_bc_matrix/", sep = "")), value = TRUE), 
+                           sep="")
+    lapply(cellranger_zips, gunzip, remove=FALSE)
+    file.rename(from = paste(x, "/outs/filtered_feature_bc_matrix/features.tsv", sep=""), to = paste(x, "/outs/filtered_feature_bc_matrix/genes.tsv", sep=""))
+  }
+  
   print(paste("reading", paste(x, "/outs/filtered_feature_bc_matrix/", sep=""), sep = " "))
   cellranger_files<-paste(x, "/outs/filtered_feature_bc_matrix/", sep="")
   my_object.data<-Read10X(cellranger_files)
@@ -372,8 +373,8 @@ for(resolution in option_arguments$resolutionList){
 
   my_palette<-adjust_palette_size(my_object@ident, basic_color_palette)
 
-  TSNEPlot(my_object, colors.use = my_palette)
-  TSNEPlot(my_object, colors.use = my_palette, do.label = TRUE, label.size = 10, group.by = "orig.ident")
+  # TSNEPlot(my_object, colors.use = my_palette)
+  # TSNEPlot(my_object, colors.use = my_palette, do.label = TRUE, label.size = 10, group.by = "orig.ident")
 
 
   plot_title<-paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution, sep = "")
@@ -387,31 +388,34 @@ for(resolution in option_arguments$resolutionList){
   png(paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"_tsne-Labeled.png", sep = ""), width = 800, height = 800)
   try(plot(my_tsne_plot))
   dev.off()
-  my_tsne_plot<-TSNEPlot(my_object, colors.use = my_palette, group.by = "orig.ident", do.return=TRUE)
-  my_tsne_plot<-my_tsne_plot + ggtitle(plot_title)
-  png(paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"_tsnebyID.png", sep = ""), width = 800, height = 800)
-  try(plot(my_tsne_plot))
-  dev.off()
-  my_tsne_plot<-TSNEPlot(my_object, colors.use = my_palette, do.label = TRUE, label.size = 10, group.by = "orig.ident", do.return=TRUE)
-  my_tsne_plot<-my_tsne_plot + ggtitle(plot_title)
-  png(paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"_tsnebyID-Labeled.png", sep = ""), width = 800, height = 800)
-  try(plot(my_tsne_plot))
-  dev.off()
-  my_tsne_plot<-TSNEPlot(my_object, colors.use = my_palette, group.by = "Phase", do.return=TRUE)
-  my_tsne_plot<-my_tsne_plot + ggtitle(plot_title)
-  png(paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"_tsnebyPhase.png", sep = ""), width = 800, height = 800)
-  try(plot(my_tsne_plot))
-  dev.off()
-  my_tsne_plot<-TSNEPlot(my_object, colors.use = my_palette, do.label = TRUE, label.size = 10, group.by = "Phase", do.return=TRUE)
-  my_tsne_plot<-my_tsne_plot + ggtitle(plot_title)
-  png(paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"_tsnebyPhase-Labeled.png", sep = ""), width = 800, height = 800)
-  try(plot(my_tsne_plot))
-  dev.off()
+  
+  if(resolution = option_arguments$resolutionList[1]){
+    my_tsne_plot<-TSNEPlot(my_object, colors.use = my_palette, group.by = "orig.ident", do.return=TRUE)
+    my_tsne_plot<-my_tsne_plot + ggtitle(plot_title)
+    png(paste(option_arguments$projectName, "dim",option_arguments$max_pcs,"_tsnebyID.png", sep = ""), width = 800, height = 800)
+    try(plot(my_tsne_plot))
+    dev.off()
+    my_tsne_plot<-TSNEPlot(my_object, colors.use = my_palette, do.label = TRUE, label.size = 10, group.by = "orig.ident", do.return=TRUE)
+    my_tsne_plot<-my_tsne_plot + ggtitle(plot_title)
+    png(paste(option_arguments$projectName, "dim",option_arguments$max_pcs,"_tsnebyID-Labeled.png", sep = ""), width = 800, height = 800)
+    try(plot(my_tsne_plot))
+    dev.off()
+    my_tsne_plot<-TSNEPlot(my_object, colors.use = my_palette, group.by = "Phase", do.return=TRUE)
+    my_tsne_plot<-my_tsne_plot + ggtitle(plot_title)
+    png(paste(option_arguments$projectName, "dim",option_arguments$max_pcs,"_tsnebyPhase.png", sep = ""), width = 800, height = 800)
+    try(plot(my_tsne_plot))
+    dev.off()
+    my_tsne_plot<-TSNEPlot(my_object, colors.use = my_palette, do.label = TRUE, label.size = 10, group.by = "Phase", do.return=TRUE)
+    my_tsne_plot<-my_tsne_plot + ggtitle(plot_title)
+    png(paste(option_arguments$projectName, "dim",option_arguments$max_pcs,"_tsnebyPhase-Labeled.png", sep = ""), width = 800, height = 800)
+    try(plot(my_tsne_plot))
+    dev.off()
+  }
 
 
 
-  saveRDS(my_object, file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"_tsne.rds", sep = ""))
-  print(paste("Saved ",option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"_tsne.rds", sep = ""))
+  # saveRDS(my_object, file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"_tsne.rds", sep = ""))
+  # print(paste("Saved ",option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"_tsne.rds", sep = ""))
   # Plot cell cycle states --------------------------------------------------------------
 
   ridgeplot_genes<- c("Pcna", "Top2a", "Mcm6", "Mki67")
@@ -467,6 +471,6 @@ for(resolution in option_arguments$resolutionList){
 
 }
 
-try(saveRDS(my_object, file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "-FINAL_tsne.rds", sep = "")), silent = FALSE)
+try(saveRDS(my_object, file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "-FINAL.rds", sep = "")), silent = FALSE)
 try(save.image(file = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "-FINAL.RData", sep = "")), silent = FALSE)
 
