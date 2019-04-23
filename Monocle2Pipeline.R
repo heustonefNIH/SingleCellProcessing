@@ -13,7 +13,7 @@ main<-function(){
   })
   names(option_arguments) <- unlist(option_names)
   required_keys<-c("seurat_object_filename", "num_dim")
-  
+
   if(!(all(required_keys %in% names(option_arguments)))){
     print(paste("Missing:", paste(required_list[!(required_list%in%names(option_arguments))], collapse = " "), sep = " "))
     stop("Required arguments:
@@ -21,13 +21,14 @@ main<-function(){
            --num_dim: dimensionality of the reduced space
            Additional arguments:
            --max_components: Dimensions to plot (default = 2) note: currently I don't think this does anything
-           --perform_expression_filtering: should analyzed RNAs be limited to expression of at least 0.1 and in at least 10 cells (default = TRUE) 
+           --perform_expression_filtering: should analyzed RNAs be limited to expression of at least 0.1 and in at least 10 cells (default = TRUE)
            --color_by_seurat_res: (default = TRUE)
            --order_by_seurat_varGenes: (default = FALSE)
            --UMI_bounded_filtering: (default = \"upper\", can be \"upper\", \"lower\", \"both\", or \"none\")
-           --cca_variables: (default = \"~nUMI + nGene\")")
+           --cca_variables: (default = \"~nUMI + nGene\")
+           SAMPLE INPUT: Rscript MonoclePipeline.R --args --seurat_object_filename 20190301_bmDBA_cntrls_ccadim20-FINAL.rds --num_dim 20 --cca_variables \"~nUMI + nGene + orig.ident\" ")
   } else{
-    
+
     if(!("max_components" %in% names(option_arguments))){
       print("Not filtering expression values")
       option_arguments$max_components<-2
@@ -52,9 +53,9 @@ main<-function(){
       print("Not ordering by seurat_varGenes")
       option_arguments$cca_variables<- "~nUMI + nGene"
     }
-    
+
     return(option_arguments)
-    
+
   }
 }
 
@@ -64,7 +65,7 @@ option_arguments$max_components<-as.numeric(option_arguments$max_components)
 
 
 print(paste("Setting UMI bounded filtering to", option_arguments$UMI_bounded_filtering, sep = " "))
-print(paste("Setting correction variables as", list(option_arguments$cca_variables), sep = " "))
+print(paste("Setting correction variables as", paste(option_arguments$cca_variables, collapse = " "), sep = " "))
 print(paste("Will process", option_arguments$seurat_object_filename, "using", option_arguments$num_dim, "dimensions and", option_arguments$max_components, "components", sep = " "))
 
 
@@ -76,13 +77,13 @@ ipak <- function(pkg){
     install.packages(new.pkg, dependencies = TRUE)
   sapply(pkg, library, character.only = TRUE)
 }
-packages<-c("Seurat", "monocle", "plyr", "dplyr", "colorRamps", "stringr", "future")
+packages<-c("Seurat", "monocle", "plyr", "dplyr", "colorRamps", "stringr", "future", "R.utils")
 suppressMessages(ipak(packages))
 
 if(!("MyPlotTrajectoryPackage" %in% installed.packages())){
   print("Installing MyPlotTrajectoryPackage from github")
   library(devtools)
-  withr::with_libpaths(new = "./", install_github("efheuston/MyPlotTrajectoryPackage", "https://github.com/efheuston/MyPlotTrajectoryPackage.git"))
+  withr::with_libpaths(new = "./", install_github("efheuston/MyPlotTrajectoryPackage"))
   library("MyPlotTrajectoryPackage", lib.loc = "./")
 }else{
   library(MyPlotTrajectoryPackage)
@@ -113,7 +114,7 @@ cycle_plot_param<-function(plotting_function, cycle_parameter, the_object){
   }
   new_length
   basic_color_palette<-c(basic_color_palette, primary.colors(new_length))
-  
+
   if(plotting_function == "cluster"){
     png_plotFunction(my_plot_cell_clusters(the_object, 1, 2, color = cycle_parameter, point_colors = basic_color_palette) +
                        ggtitle(paste(output_prefix, "-", cycle_parameter, sep = "")),
@@ -132,7 +133,7 @@ cycle_plot_param<-function(plotting_function, cycle_parameter, the_object){
                      filename = paste(output_prefix, "_clstr-orig.identFACET.png", sep = ""),
                      height = 1600,
                      width = 1600)
-    
+
   }
   if(plotting_function == "trajectory"){
     png_plotFunction(my_plot_cell_trajectory(the_object,
@@ -173,7 +174,7 @@ cycle_plot_param<-function(plotting_function, cycle_parameter, the_object){
                        geom_vline(xintercept = lower_bound) +
                        ggtitle(paste(output_prefix, "-", cycle_parameter, sep = "")),
                      filename = paste(output_prefix, "_nUMI_2SD-by", cycle_parameter,".png", sep = ""))
-    
+
   }
 }
 
@@ -315,9 +316,9 @@ png_plotFunction(plot_pc_variance_explained(monocle_object, return_all = FALSE),
 
 monocle_object<-reduceDimension(monocle_object,
                                 max_components = option_arguments$max_components,
-                                num_dim = option_arguments$num_dim,
+                                num_dim = as.numeric(option_arguments$num_dim),
                                 reduction_method = 'tSNE',
-                                residualModelFormulaStr = paste("~", paste(unlist(option_arguments$cca_variables), collapse = " + "), sep = ""),
+                                residualModelFormulaStr = paste(option_arguments$cca_variables, collapse = " "),
                                 verbose = TRUE)
 monocle_object<-clusterCells(monocle_object)
 
@@ -398,7 +399,7 @@ save.image(file=paste(output_prefix, ".RData", sep = ""))
 # Hard-coding to use Seurat vargenes as markers... ?
 marker_genes <-row.names(subset(fData(monocle_object), gene_short_name %in% seurat_varGenes))
 diff_test_res <-differentialGeneTest(monocle_object[marker_genes,],
-                                     cores = future::availableCores(), 
+                                     cores = future::availableCores(),
                                      fullModelFormulaStr = "~Cluster") # ASSUMING CLUSTER IS TEH CORRECT FULL MODEL FORMULA STRING
 sig_genes<-subset(diff_test_res, qval < 0.1) # Set for FDR < 10%
 sig_genes[,c("gene_short_name", "pval", "qval")]

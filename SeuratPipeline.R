@@ -13,14 +13,14 @@ main<-function(){
   })
   names(option_arguments) <- unlist(option_names)
   required_keys<-c("data", "projectName", "genome", "max_pcs", "resolutionList")
-  
+
   if(!(all(required_keys %in% names(option_arguments)))){
     print(paste("Missing:", paste(required_keys[!(required_keys%in%names(option_arguments))], collapse = " "), sep = " "))
     stop("Required arguments:
            --data: folders containing outs files (space seprated)
            --projectName: name to append to printed files
            --genome: genome (mm10 or GRCh38)
-           --max_pcs: dimensionality of reduced space 
+           --max_pcs: dimensionality of reduced space
            --resolutionList:
           Additional arguments:
            --mitoFilter: whether or not to correct for cell cycle stage (default = FALSE)
@@ -138,16 +138,16 @@ if(option_arguments$genome == "mm10"){
 
 # Create multi_object_list
 create_multi_object_list<-function(x){
-  
+
   if(!any(grepl(pattern="gz$", x = list.files(paste(x, "/outs/filtered_feature_bc_matrix/", sep = "")), value = FALSE))){
     print("Unzipping cellranger zips")
-    cellranger_zips<-paste(x, "/outs/filtered_feature_bc_matrix/", 
-                           grep(pattern="gz$", x = list.files(paste(x, "/outs/filtered_feature_bc_matrix/", sep = "")), value = TRUE), 
+    cellranger_zips<-paste(x, "/outs/filtered_feature_bc_matrix/",
+                           grep(pattern="gz$", x = list.files(paste(x, "/outs/filtered_feature_bc_matrix/", sep = "")), value = TRUE),
                            sep="")
     lapply(cellranger_zips, gunzip, remove=FALSE)
     file.rename(from = paste(x, "/outs/filtered_feature_bc_matrix/features.tsv", sep=""), to = paste(x, "/outs/filtered_feature_bc_matrix/genes.tsv", sep=""))
   }
-  
+
   print(paste("reading", paste(x, "/outs/filtered_feature_bc_matrix/", sep=""), sep = " "))
   cellranger_files<-paste(x, "/outs/filtered_feature_bc_matrix/", sep="")
   my_object.data<-Read10X(cellranger_files)
@@ -160,7 +160,7 @@ create_multi_object_list<-function(x){
   my_object<-ScaleData(my_object, vars.to.regress = option_arguments$vars_to_regress, do.par = TRUE, num.cores = future::availableCores())
   my_object<-CellCycleScoring(my_object, s.genes = s.genes, g2m.genes = g2m.genes, set.ident = FALSE)
   my_object@meta.data$orig.ident<-x
-  
+
   multi_object_list$x<-my_object
 
 }
@@ -219,7 +219,7 @@ if(option_arguments$perform_cca == TRUE){
   multi_object_list<-lapply(1:length(option_arguments$data), function(x) create_multi_object_list(option_arguments$data[x]))
   names(multi_object_list)<-option_arguments$data
   multi_object_list
-  
+
   genes.use<-c()
   for (i in 1:length(multi_object_list)){
     if(length(multi_object_list[[i]]@var.genes)>=1000){
@@ -388,8 +388,8 @@ for(resolution in option_arguments$resolutionList){
   png(paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution,"_tsne-Labeled.png", sep = ""), width = 800, height = 800)
   try(plot(my_tsne_plot))
   dev.off()
-  
-  if(resolution = option_arguments$resolutionList[1]){
+
+  if(resolution = as.numeric(option_arguments$resolutionList[1])){
     my_tsne_plot<-TSNEPlot(my_object, colors.use = my_palette, group.by = "orig.ident", do.return=TRUE)
     my_tsne_plot<-my_tsne_plot + ggtitle(plot_title)
     png(paste(option_arguments$projectName, "dim",option_arguments$max_pcs,"_tsnebyID.png", sep = ""), width = 800, height = 800)
@@ -438,7 +438,7 @@ for(resolution in option_arguments$resolutionList){
     geneList <- toupper(geneList)
     housekeepingGenes<-toupper(housekeepingGenes)
   }
-  
+
   suppressWarnings(drawmyplot(geneList, my_object, name = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res",resolution, sep = "")))
   suppressWarnings(drawmyplot(geneList, my_object, name = paste(option_arguments$projectName, "dim",option_arguments$max_pcs, "res", resolution, "-HKgene", sep = "")))
 
