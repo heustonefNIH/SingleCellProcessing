@@ -1,0 +1,16 @@
+.Rproj.user
+.Rhistory
+.Rapp.history
+.RData
+.Ruserdata
+.DS_Store
+*.RDS
+
+#Ignore raw sequencing data
+PancDB_data
+
+#Ignore archived files
+Archives/*
+
+#Ignore web summaries
+web_summaries/
