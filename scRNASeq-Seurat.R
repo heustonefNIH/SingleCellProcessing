@@ -2,12 +2,16 @@
 # Sample data is from [PandDB](https://hpap.pmacs.upenn.edu/)
 
 
+# Sample inclusion --------------------------------------------------------
+
+
+
+
 ##NB: 
-# currently only Scale data (not sctransform) is included. Add "regression.param <- not0" and sctransform equation to regress variables
 
 # Global parameters -------------------------------------------------------
 
-rnaProject <- "Obesity_scRNA-Anchored-NW-OB"
+rnaProject <- "PancT2D_allSmpls"
 regression.vars <- c("sequencerID", "SampleSex", "SampleAge")
 cum.var.thresh <- 90
 resolution <- 0.5
@@ -34,8 +38,6 @@ if(comp.type == "macbookPro"){
 	path_to_data <- "/data/CRGGH/heustonef/hpapdata/cellranger_scRNA/scRNA_transfer"
 	sourceable.functions <- list.files(path = "/data/CRGGH/heustonef/hpapdata/RFunctions/", pattern = "*.R", full.names = TRUE)
 	metadata.location <- "/data/CRGGH/heustonef/hpapdata/"
-	# library(vctrs, lib.loc = "/data/heustonef/Rlib_local/")
-	# library(purrr, lib.loc = "/data/heustonef/Rlib_local/")
 }
 
 # Load libraries ----------------------------------------------------------
