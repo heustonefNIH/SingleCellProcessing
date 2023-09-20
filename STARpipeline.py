@@ -251,7 +251,7 @@ for sampleID in sample_list:
 	"--alignInsertionFlush Right \\",
 	"--alignSplicedMateMapLminOverLmate 0 \\",
 	"--alignSplicedMateMapLmin 30 \\",
-	"--quantmode TranscriptomeSAM \\",
+	"--quantMode TranscriptomeSAM \\",
 	"--outSAMstrandField intronMotif \\", # include for potential use with StringTie for assembly
 	"--chimSegmentMin 12 \\",  # ** essential to invoke chimeric read detection & reporting **
 	"--chimJunctionOverhangMin 8 \\",
