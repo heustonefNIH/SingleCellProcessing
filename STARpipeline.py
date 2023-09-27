@@ -171,8 +171,7 @@ for sampleID in sample_list:
 	J_line,
 	"--FusionInspector validate \\",
 	"--denovo_reconstruct \\",
-	"--examine_coding_effect \\",
-	"--output_dir STARFUSION \\"	]
+	"--examine_coding_effect \\"]
 	fusion_cmd = '\n'.join(cmdList)
     # os.chdir(rnaseq_dir)
     # with open("FUSIONcmd.swarm", 'a') as f:
@@ -183,7 +182,7 @@ for sampleID in sample_list:
 for sampleID in sample_list:
 	# os.chdir(sampleID)
 	# cd_line = ''.join(("cd ", sampleID, " \\"))
-	alignedToTranscriptome_line = ''.join((sampleID, "_starfusionAligned.sortedByCoord.out.bam \\"))
+	alignedToTranscriptome_line = ''.join((sampleID, "_starfusionAligned.toTranscriptome.out.bam \\"))
 	sample_info = ''.join((sampleID, ' >& ', sampleID, "rsemLOG.txt"))
 	cmdList = [
 		# cd_line, 
@@ -270,10 +269,10 @@ for sampleID in sample_list:
 	"--examine_coding_effect \\",
 	"--output_dir STARFUSION \\"]
 	fusion_cmd = '\n'.join(cmdList)
-	alignedToTranscriptome_line = ''.join((sampleID, "_starfusionAligned.sortedByCoord.out.bam \\"))
+	alignedToTranscriptome_line = ''.join((sampleID, "_starfusionAligned.toTranscriptome.out.bam \\"))
 	sample_info = ''.join((sampleID, ' >& ', sampleID, "rsemLOG.txt"))
 	cmdList = [
-		"\n&& rsem-calculate-expression \\", 
+		"\nrsem-calculate-expression \\", 
 		"-p $SLURM_CPUS_PER_TASK \\",
 		"--alignments \\" ,
 		"--paired-end \\",
