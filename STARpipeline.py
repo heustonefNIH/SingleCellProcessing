@@ -36,7 +36,7 @@ for sampleID in sample_list:
     readfilesin_line = ''.join(("--readFilesIn ", ' '.join(fastq_files), " \\"))
     outfilenameprefix_line = ''.join(("--outFileNamePrefix ", sampleID, "_pass1 \\"))
     cmdList = [
-    "GENOMEDIR=/fdb/STAR_current/UCSC/hg38/genes-100/ \\"  ,
+    "GENOMEDIR=/fdb/STAR_current/UCSC/hg38/genes-100/ \\",
     "&& SJDBGTFFILE=/fdb/STAR_current/UCSC/hg38/genes.gtf \\",
     cd_line,
     "&& mkdir -p star_pass1 \\",
