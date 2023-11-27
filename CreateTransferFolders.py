@@ -32,7 +32,7 @@ for sampleDir in os.listdir(sc_dir): # for each sample ID
             print(''.join(("Multiple matches for filtered...matrix dir found in ", sampleDir, "... skipping")))
         else:
             filteredData_dir = filteredData_dir[0]
-            target_patterns = ['^filtered.*.h5', '^barcodes', '^features', '^matrix'] + additional_files
+            target_patterns = ['h5$', '^barcodes', '^features', '^matrix'] + additional_files
             target_files = re.compile('|'.join(target_patterns))
             #target_path = os.path.join(target_dir, sampleDir, "outs", filteredData_dir)
             target_path = os.path.join(target_dir, sampleDir, filteredData_dir)
