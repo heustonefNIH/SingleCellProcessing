@@ -9,8 +9,8 @@ import re
 
 #Define variables
 fastq_dir = "/Users/heustonef/Library/CloudStorage/OneDrive-NationalInstitutesofHealth/scRNA_ATAC-Seq/huMuscle/testFolder"
-swarmfile_name = 'huMuscle-RNA.txt'
-match_pattern = '^EH\d{3}$'
+swarmfile_name = 'huMuscle-RNA.swarm'
+match_pattern = '^EH\d{3}'
 ignore_folders = "AACT5JKM5"
 skippedsamplesfile_name = 'SkippedSamples.txt'
 sequencedata_type = 'rna'
@@ -25,7 +25,7 @@ if re.search('rna', sequencedata_type, re.IGNORECASE):
 
 
 os.chdir(fastq_dir)
-match_pattern = re.compile(match_pattern)
+match_pattern_compiled = re.compile(match_pattern)
 
 # Create swarm file
 with open(swarmfile_name, 'w') as swarmfile:
@@ -41,55 +41,39 @@ with open(skippedsamplesfile_name, 'w') as skippedsamples:
 sample_list = []
 for sampleDir, subdirectories, files in os.walk(fastq_dir):
 	for filename in files:
-		if re.search("EH00", filename):
+		if re.search(match_pattern, filename):
 			sample_list.append(sampleDir)    #And add it to the lit of sample IDs to read
 			break
 
 # GLoop through directory and collect *fastq.gz files
 for sampleDir in sample_list: # for each sample id
 	fastq_list = [] #Start a new list for each sample ID
-	batches = set()
-	for fastq_file in os.walk(sample_list):
-		if fastq_file.endswith('fastq.gz'):
-			fastq_list.append(file) # Now all the fastq files in sampleDir dir are in a list
-
-
-
-	for sampleID, subdirs, files in os.walk(sampleDir):
-		if re.search(sequencedata_type, sampleID, re.IGNORECASE) is not None:
-			if sampleID.endswith('fastq'):
-				for file in (file for file in files if not file.startswith('.')): #for each fastq file
-					if file.endswith('.fastq.gz') and re.search('L\d{3}', file):    # Check it's nomenclature and fix it if necessary
-			# Get batch IDs
-				if len(fastq_list) > 0:
-					if ([m := re.search('.*_S\d+_L\d+', x) for x in fastq_list] and m is not None):
-						batchID = [re.search('EH-?\d{3}(_.*?)(?=_S\d+_L\d+)', x).group(1) for x in fastq_list]
-					else:
-						print("Could not find batch nomenclature in sampleDir", sampleDir)
-					batches.update(batchID)
-	# Make swarm file
-			if len(batches) > 0:
-				sampleID = sampleID.replace(" ", "\ ")
-				for batch_id in batches:
-					sample = ",".join(set([re.match('.*(?=_S\d+_L\d+)', x).group(0) for x in fastq_list if batch_id in x]))
-				# Write swarm file for sample
-					with open(swarmfile_name, 'a') as swarmfile:
-						swarmfile.write(''.join(('FASTQ_PATH=', sampleID, '; \\\n')))
-						swarmfile.write('ulimit -u 10240 -n 16384; \\\n')
-						swarmfile.write(''.join((cellranger_module, ' count --id=', ''.join((sampleDir, batch_id)), ' \\\n')))
-						swarmfile.write(''.join(('\t ', ref_genome_cmd, ' \\\n')))
-						swarmfile.write(''.join(('\t --fastqs=\"$FASTQ_PATH\" \\\n')))
-						swarmfile.write(''.join(('\t --sample=', sample, ' \\\n')))
-						swarmfile.write(''.join(('\t --localcores=$SLURM_CPUS_PER_TASK \\\n')))
-						swarmfile.write(''.join(('\t --localmem=34 \\\n')))
-						swarmfile.write(''.join(('\t --jobmode=slurm \\\n')))
-						swarmfile.write(''.join(('\t --maxjobs=10')))
-						swarmfile.write('\n\n')
+	for _, _, fastq_files in os.walk(sampleDir):
+		fastq_list.extend([x for x in fastq_files if x.endswith('fastq.gz')]) # Now all the fastq files in sampleDir dir are in a list
+		# Get batch IDs
+		if len(fastq_list) > 0:
+			#Removing section on batch identification for now, since it's not relevant to getting this running--See "MakeSwarmFile_cellranger.py" for original code
+			sample_set = set([re.match('.*(?=_S\d+_L\d+)', x).group(0) for x in fastq_list])
+			# Write swarm file for sample
+			for sample in sample_set:
+				with open(swarmfile_name, 'a') as swarmfile:
+					swarmfile.write(''.join(('FASTQ_PATH=', sampleDir, '; \\\n')))
+					swarmfile.write('ulimit -u 10240 -n 16384; \\\n')
+					swarmfile.write(''.join((cellranger_module, ' count --id=', sample, ' \\\n')))
+					swarmfile.write(''.join(('\t ', ref_genome_cmd, ' \\\n')))
+					swarmfile.write(''.join(('\t --fastqs=\"$FASTQ_PATH\" \\\n')))
+					swarmfile.write(''.join(('\t --sample=', sample, ' \\\n')))
+					swarmfile.write(''.join(('\t --expect-cells=REPLACE \\\n'))) # specifically to manually insert expected cell number for troubleshooting run
+					swarmfile.write(''.join(('\t --localcores=$SLURM_CPUS_PER_TASK \\\n')))
+					swarmfile.write(''.join(('\t --localmem=34 \\\n')))
+					swarmfile.write(''.join(('\t --jobmode=slurm \\\n')))
+					swarmfile.write(''.join(('\t --maxjobs=10')))
+					swarmfile.write('\n\n')
 			else:
-				print(sampleID)
-				print("Fastq file name format in", sampleDir, "is not interpretable by current version of MakeSwarmFile_cellranger-HU.py")
+				print(sample)
+				print("Fastq file name format in", sample, "is not interpretable by current version of MakeSwarmFile_cellranger-HU.py")
 				with open(skippedsamplesfile_name, 'a') as skippedsamples:
-					skippedsamples.write(''.join((sampleDir, '\n')))
+					skippedsamples.write(''.join((sample, '\n')))
 
 if os.path.isfile(swarmfile_name):
 	print(''.join(("Created ", swarmfile_name)))
