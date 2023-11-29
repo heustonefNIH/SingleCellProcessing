@@ -8,9 +8,10 @@ import os
 import re
 
 #Define variables
-
-fastq_dir = "/data/CRGGH/heustonef/huMuscle/fastq/"
-swarmfile_name = 'huMuscle.swarm'
+fastq_dir = "/Users/heustonef/Library/CloudStorage/OneDrive-NationalInstitutesofHealth/scRNA_ATAC-Seq/huMuscle/testFolder"
+swarmfile_name = 'huMuscle-RNA.txt'
+match_pattern = '^EH\d{3}$'
+ignore_folders = "AACT5JKM5"
 skippedsamplesfile_name = 'SkippedSamples.txt'
 sequencedata_type = 'rna'
 
@@ -24,42 +25,41 @@ if re.search('rna', sequencedata_type, re.IGNORECASE):
 
 
 os.chdir(fastq_dir)
-
+match_pattern = re.compile(match_pattern)
 
 # Create swarm file
 with open(swarmfile_name, 'w') as swarmfile:
-    swarmfile.write(statement :=' '.join(('#swarm -f', swarmfile_name, ' -g 64 -t 12 --time=48:00:00 --merge-output --module', cellranger_module, '--sbatch \"--mail-type=BEGIN,END,FAIL\"\n\n')))
-
+    swarmfile.write(statement :=' '.join(('#swarm -f', 
+                                          swarmfile_name, 
+                                          ' -g 64 -t 12 --time=48:00:00 --merge-output --module', 
+                                          cellranger_module, 
+                                          '--sbatch \"--mail-type=BEGIN,END,FAIL\"\n\n')))
 with open(skippedsamplesfile_name, 'w') as skippedsamples:
     skippedsamples.write('The following HPAP sample IDs were not written to the swarm file:\n')
 
 # Get a list of samples to run
 sample_list = []
-for sampleDir in os.listdir(hpap_dir): # for each sample ID
-    if re.search(r'^EH-\d{3}$', sampleDir) is not None: # Make sure it follows the HPAP nomenclature
-        sample_list.append(sampleDir)    #And add it to the lit of sample IDs to read
+for sampleDir, subdirectories, files in os.walk(fastq_dir):
+    for filename in files:
+        if re.search("EH00", filename):
+            sample_list.append(sampleDir)    #And add it to the lit of sample IDs to read
+            break
 
 # GLoop through directory and collect *fastq.gz files
 for sampleDir in sample_list: # for each sample id
     fastq_list = [] #Start a new list for each sample ID
     batches = set()
+    for fastq_file in os.walk(sample_list):
+    	if fastq_file.endswith('fastq.gz'):
+            fastq_list.append(file) # Now all the fastq files in sampleDir dir are in a list
+
+
+
     for sampleID, subdirs, files in os.walk(sampleDir):
         if re.search(sequencedata_type, sampleID, re.IGNORECASE) is not None:
-            if sampleID.endswith('fastq') in sampleID:
+            if sampleID.endswith('fastq'):
                 for file in (file for file in files if not file.startswith('.')): #for each fastq file
                     if file.endswith('.fastq.gz') and re.search('L\d{3}', file):    # Check it's nomenclature and fix it if necessary
-                        # print('renaming file', file)
-                        # origfile = file
-                        # if not re.search('_S\d+_L\d+', file) and re.search('\.L\d{3}\.', file): # if file is in "<SampleID>.L00X" and does not contain "_S\d+_L\d+" format
-                        #     file = re.sub(r'\.(L\d{3})\.', r'_S1_\1_', file)
-                        # if not file.endswith('001.fastq.gz') and 'fastq-data.fastq.gz' in file: # if file does not end as "001.fastq.gz"
-                        #     file = re.sub(r'fastq-data.fastq.gz', '001.fastq.gz', file)
-                        # if file.endswith('001.fastq.gz') and 'fastq-data.fastq.gz' in file:
-                        #     file = re.sub(r'fastq-data.fastq.gz', '.fastq.gz', file)
-                        # if re.search(r'_10xscRNA_', file):
-                        #     file = re.sub(r'_10xscRNA_', '_', file)
-                        # os.rename(os.path.join(sampleID, origfile), os.path.join(sampleID, file))
-                        fastq_list.append(file) # Now all the fastq files in sampleDir dir are in a list
             # Get batch IDs
                     if len(fastq_list) > 0:
                         if ([m := re.search('.*_S\d+_L\d+', x) for x in fastq_list] and m is not None):
@@ -87,7 +87,7 @@ for sampleDir in sample_list: # for each sample id
                             swarmfile.write('\n\n')
                 else:
                     print(sampleID)
-                    print("Fastq file name format in", sampleDir, "is not interpretable by current version of MakeSwarmFile_cellranger.py")
+                    print("Fastq file name format in", sampleDir, "is not interpretable by current version of MakeSwarmFile_cellranger-HU.py")
                     with open(skippedsamplesfile_name, 'a') as skippedsamples:
                         skippedsamples.write(''.join((sampleDir, '\n')))
 
