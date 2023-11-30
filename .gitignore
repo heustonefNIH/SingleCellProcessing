@@ -14,3 +14,7 @@ Archives/*
 
 #Ignore web summaries
 web_summaries/
+
+#Ignore test folders
+testFolder
+backup-testFolder
