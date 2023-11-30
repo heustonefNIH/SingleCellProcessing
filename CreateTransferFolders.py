@@ -47,7 +47,6 @@ for sampleDir in os.listdir(sc_dir): # for each sample ID
                 for file in files:
                     if target_files.search(file) and not file.startswith("\."):
                         transfer_files.append(os.path.join(root, file))
-        print("finished making file list")
         # Recreate folder structure in transfer folder
         for file in transfer_files:
             dir_structure = list(set([os.path.dirname(x) for x in transfer_files]))
@@ -58,6 +57,5 @@ for sampleDir in os.listdir(sc_dir): # for each sample ID
             shutil.copy2(os.path.join(sc_dir, file), os.path.join(transfer_dir, file))
             if re.match("web_summary\.html|metrics_summary\.csv", os.path.basename(file)):
                 os.rename(os.path.join(transfer_dir, file), os.path.join(transfer_dir, os.path.dirname(file), ''.join((sampleDir, '-', os.path.basename(file)))))
-    print("finished first for loop")
 
 
