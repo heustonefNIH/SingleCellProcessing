@@ -87,6 +87,7 @@ for sampleDir in sample_list: # for each sample id
                             swarmfile.write(''.join((cellranger_module, ' count --id=', ''.join((sampleDir, batch_id)), ' \\\n')))
                             swarmfile.write(''.join(('\t ', ref_genome_cmd, ' \\\n')))
                             swarmfile.write(''.join(('\t --fastqs=\"$FASTQ_PATH\" \\\n')))
+                            swarmfile.write(''.join(('\t --create-bam=true \\\n')))
                             swarmfile.write(''.join(('\t --sample=', sample, ' \\\n')))
                             swarmfile.write(''.join(('\t --localcores=$SLURM_CPUS_PER_TASK \\\n')))
                             swarmfile.write(''.join(('\t --localmem=34 \\\n')))

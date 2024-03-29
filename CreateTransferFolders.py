@@ -10,12 +10,12 @@ from pathlib import Path
 import shutil
 
 
-sc_dir = "/Users/heustonef/Library/CloudStorage/OneDrive-NationalInstitutesofHealth/SingleCellMetaAnalysis/GitRepositories/SingleCellProcessing/testFolder"
-transfer_dir = "/Users/heustonef/Library/CloudStorage/OneDrive-NationalInstitutesofHealth/SingleCellMetaAnalysis/GitRepositories/SingleCellProcessing/transfer_folder"
+sc_dir = "/data/CRGGH/heustonef/huMuscle/fastq/"
+transfer_dir = "/data/CRGGH/heustonef/huMuscle/fastq/sc_transfer"
 additional_files = ['web_summary.html', 'metrics_summary.csv']
 req_outs_folder = True
 search_term = 'EH0'
-ignore_folders = ["raw_feature_bc_matrix", "analysis"]
+ignore_folders = ["raw_feature_bc_matrix", "analysis", " SC_RNA_COUNTER_CS"]
 
 os.chdir(sc_dir)
 target_patterns = ['h5$', '^barcodes', '^features', '^matrix', '^_'] + additional_files # '^_' copies run information
@@ -42,11 +42,10 @@ for sampleDir in os.listdir(sc_dir): # for each sample ID
             # right way to do this is to make a list of all files to be transfered, then transfer everything in the list
             transfer_files = []
             for root, subdirs, files in os.walk(sampleDir):
-                if re.search(ignore_folders, root):
-                    continue
-                for file in files:
-                    if target_files.search(file) and not file.startswith("\."):
-                        transfer_files.append(os.path.join(root, file))
+                if [x for x, _, _ in os.walk(sampleDir) if not re.search(ignore_folders, x)]:
+                    for file in files:
+                        if target_files.search(file) and not file.startswith("\."):
+                            transfer_files.append(os.path.join(root, file))
         # Recreate folder structure in transfer folder
         for file in transfer_files:
             dir_structure = list(set([os.path.dirname(x) for x in transfer_files]))
