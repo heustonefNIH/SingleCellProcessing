@@ -5,6 +5,7 @@
 .Ruserdata
 .DS_Store
 *.RDS
+.ipynb_checkpoints/*
 
 #Ignore raw sequencing data
 PancDB_data
