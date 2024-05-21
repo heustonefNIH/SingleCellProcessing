@@ -12,6 +12,7 @@ import re
 
 # Define global variables
 
+#swarm -f cellbender.swarm -g 64 -t 8 --time=24:00:00 --merge-output --module cellbender --sbatch "--mail-type=BEGIN,END,FAIL"
 cellranger_folder = "/data/CRGGH/heustonef/hpapdata/cellranger_scRNA/" # Required: folder containing cellranger output data
 cellbender_file = "cellbender.swarm" # Optional: None, or name of file to write cellbender commands. Useful if submitting as swmarm file
 gpu_run = False
