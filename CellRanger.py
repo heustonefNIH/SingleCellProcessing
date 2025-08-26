@@ -1,5 +1,6 @@
 import os
 import re
+from pathlib import Path
 
 # Define variables
 fastq_dir = "/Users/heustonef/Library/CloudStorage/OneDrive-NationalInstitutesofHealth/SingleCellMetaAnalysis/GitRepositories/SingleCellProcessing/testFolder/H3J57DSX7"
