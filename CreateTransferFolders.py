@@ -1,5 +1,5 @@
-# 2024.10.04
-# This will replicate the folder structure of each sample and transfer only necessary files
+# 2025.12.12
+# This will copy files from the outs folder only
 
 
 # Import libraries
@@ -8,53 +8,43 @@ import os
 import re
 from pathlib import Path
 import shutil
+from collections import defaultdict
 
 
-sc_dir = "/data/CRGGH/heustonef/huMuscle/pilot/"
-transfer_dir = "/data/CRGGH/heustonef/huMuscle/pilot/summary_transfer"
-additional_files = ['web_summary.html', 'metrics_summary.csv']
-req_outs_folder = True
+sc_dir = "./testFolder/"
+transfer_dir = "./summary_transfer"
+transfer_files = ['web_summary', 'metrics_summary', 'cb_']
+rename_files = ['web_summary', 'metrics_summary']
+# req_outs_folder = True
 search_term = 'scrna'
 ignore_folders = ["raw_feature_bc_matrix", "analysis", " SC_RNA_COUNTER_CS"]
 
-os.chdir(sc_dir)
-target_patterns = additional_files # '^_' copies run information
-
 # Compile search_terms
 search_term = re.compile(search_term)
-target_files = re.compile('|'.join(target_patterns))
+target_pattern = re.compile('|'.join(transfer_files))
+rename_pattern = re.compile('|'.join(rename_files))
 ignore_folders = re.compile('|'.join(ignore_folders))
 
-# Get a list of samples to run
-for sampleDir in os.listdir(sc_dir): # for each sample ID
-    if req_outs_folder == True and not os.path.exists(os.path.join(sampleDir, "outs")):
-        continue # If we require an "outs" folder and none exists, skip this round of "for sampleDir" and move to the next one
-    if re.search(search_term, sampleDir) is not None: 
-        print(sampleDir)
-        filteredData_dir = re.compile('^filtered.+matrix$')
-        filteredData_dir = list(filter(filteredData_dir.match, [os.path.basename(x[0]) for x in os.walk(sampleDir)]))
-        if len(filteredData_dir) != 1:
-            print(''.join(("Multiple matches for filtered...matrix dir found in ", sampleDir, "... skipping")))
-        else:
-            sampleDir_transfer = os.path.join(transfer_dir, sampleDir)
-            Path(sampleDir_transfer).mkdir(parents = True, exist_ok = True)
-            # Copy target files
-            # right way to do this is to make a list of all files to be transfered, then transfer everything in the list
-            transfer_files = []
-            for root, subdirs, files in os.walk(sampleDir):
-                if [x for x, _, _ in os.walk(sampleDir) if not re.search(ignore_folders, x)]:
-                    for file in files:
-                        if target_files.search(file) and not file.startswith("\."):
-                            transfer_files.append(os.path.join(root, file))
-        # Recreate folder structure in transfer folder
-        for file in transfer_files:
-            dir_structure = list(set([os.path.dirname(x) for x in transfer_files]))
-            for file_path in dir_structure:
-                file_path = os.path.join(transfer_dir, file_path)
-                Path(file_path).mkdir(parents=True, exist_ok=True)
-        for file in transfer_files:
-            shutil.copy2(os.path.join(sc_dir, file), os.path.join(transfer_dir, file))
-            if re.match("web_summary\.html|metrics_summary\.csv", os.path.basename(file)):
-                os.rename(os.path.join(transfer_dir, file), os.path.join(transfer_dir, os.path.dirname(file), ''.join((sampleDir, '-', os.path.basename(file)))))
+# Create the transfer folder
+Path(os.path.join(transfer_dir, 'web_summaries')).mkdir(parents = True, exist_ok= True)
+
+# start the list of things to transfer
+sample_list=defaultdict(dict)
+
+for sampleID in os.listdir(sc_dir):
+    if os.path.isdir(os.path.join(sc_dir, sampleID, "outs")):
+        current_path = os.path.join(sc_dir, sampleID, "outs")
+        for fname in os.listdir(current_path):
+            if target_pattern.search(fname):
+                print(f'copying {fname}')
+                target_path=os.path.join(transfer_dir, sampleID, "outs")
+                Path(target_path).mkdir(parents = True, exist_ok=True)
+                shutil.copy2(os.path.join(current_path, fname), os.path.join(target_path, fname))
+                # rename test
+                if rename_pattern.search(fname):
+                    new_fname='_'.join((sampleID, fname))
+                    os.rename(os.path.join(target_path, fname), os.path.join(target_path, new_fname))
+                    if 'web_summary' in new_fname:
+                        os.rename(os.path.join(target_path, new_fname), os.path.join(transfer_dir, 'web_summaries', new_fname))
 
 
