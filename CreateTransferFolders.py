@@ -1,4 +1,4 @@
-# 2022.12.20
+# 2024.10.04
 # This will replicate the folder structure of each sample and transfer only necessary files
 
 
@@ -10,15 +10,15 @@ from pathlib import Path
 import shutil
 
 
-sc_dir = "/data/CRGGH/heustonef/huMuscle/fastq/"
-transfer_dir = "/data/CRGGH/heustonef/huMuscle/fastq/sc_transfer"
+sc_dir = "/data/CRGGH/heustonef/huMuscle/pilot/"
+transfer_dir = "/data/CRGGH/heustonef/huMuscle/pilot/summary_transfer"
 additional_files = ['web_summary.html', 'metrics_summary.csv']
 req_outs_folder = True
-search_term = 'EH0'
+search_term = 'scrna'
 ignore_folders = ["raw_feature_bc_matrix", "analysis", " SC_RNA_COUNTER_CS"]
 
 os.chdir(sc_dir)
-target_patterns = ['h5$', '^barcodes', '^features', '^matrix', '^_'] + additional_files # '^_' copies run information
+target_patterns = additional_files # '^_' copies run information
 
 # Compile search_terms
 search_term = re.compile(search_term)
