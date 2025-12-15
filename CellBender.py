@@ -9,14 +9,15 @@ from collections import defaultdict
 
 # Define global variables
 
-#swarm -f cellbender.swarm -g 64 -t 8 --time=24:00:00 --merge-output --module cellbender --sbatch "--mail-type=BEGIN,END,FAIL"
-cellranger_folder = "/data/CRGGH/heustonef/huMuscle/aadm_x18/" # Required: folder containing cellranger output data
+# swarm -f cellbender.swarm -g 32 --time=8:00:00 --partition=gpu --gres=gpu:v100x:1 -t 8 --merge-output --module cellbender --sbatch "--mail-type=BEGIN,END,FAIL"
+# cellranger_folder = "/data/CRGGH/heustonef/huMuscle/aadm_x18/" # Required: folder containing cellranger output data
+cellranger_folder = "testFolder"
 cellbender_file = "cellbender.swarm" # Optional: None, or name of file to write cellbender commands. Useful if submitting as swmarm file
 gpu_run = "--cuda"
 flags = "--cpu-threads $SLURM_CPUS_PER_TASK" # Optional: CellBender flags to include in command
 
-swarm_statement=f"""
-#swarm -f {cellbender_file} -g 64 -t 8 --time=24:00:00 --partition=gpu --gres=gpu:XX:X --merge-output --module cellbender --sbatch "--mail-type=BEGIN,END,FAIL"
+swarm_statement=f""" swarm -f cellbender.swarm -g 32 --time=8:00:00 --partition=gpu --gres=gpu:v100x:1 -t 8 --merge-output --module cellbender --sbatch "--mail-type=BEGIN,END,FAIL"
+
 """
 
 
@@ -49,8 +50,9 @@ for sampleID in os.listdir(cellranger_folder):
 
 for sampleID, mapping in sorted(sample_list.items()):
 	for paths, outfile in mapping.items():
+		cd_dir = os.path.dirname(paths)
 		cellbender_cmd=f"""#Sample {sampleID}
-cd {paths}; \\
+cd {cd_dir}; \\
 cellbender remove-background {flags} \\
 {gpu_run} \\
 --input {paths} \\

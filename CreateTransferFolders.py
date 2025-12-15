@@ -13,8 +13,8 @@ from collections import defaultdict
 
 sc_dir = "./testFolder/"
 transfer_dir = "./summary_transfer"
-transfer_files = ['web_summary', 'metrics_summary', 'cb_']
-rename_files = ['web_summary', 'metrics_summary']
+transfer_files = ['web_summary', 'metrics_summary', 'cb_feature_bc_matrix_metrics.csv', 'cb_feature_bc_matrix_report', 'cb_feature_bc_matrix.pdf']
+rename_files = ['web_summary', 'metrics_summary', 'cb_feature_bc_matrix_report', 'cb_feature_bc_matrix.pdf']
 # req_outs_folder = True
 search_term = 'scrna'
 ignore_folders = ["raw_feature_bc_matrix", "analysis", " SC_RNA_COUNTER_CS"]
@@ -36,7 +36,6 @@ for sampleID in os.listdir(sc_dir):
         current_path = os.path.join(sc_dir, sampleID, "outs")
         for fname in os.listdir(current_path):
             if target_pattern.search(fname):
-                print(f'copying {fname}')
                 target_path=os.path.join(transfer_dir, sampleID, "outs")
                 Path(target_path).mkdir(parents = True, exist_ok=True)
                 shutil.copy2(os.path.join(current_path, fname), os.path.join(target_path, fname))
@@ -44,7 +43,7 @@ for sampleID in os.listdir(sc_dir):
                 if rename_pattern.search(fname):
                     new_fname='_'.join((sampleID, fname))
                     os.rename(os.path.join(target_path, fname), os.path.join(target_path, new_fname))
-                    if 'web_summary' in new_fname:
+                    if rename_pattern.search(new_fname):
                         os.rename(os.path.join(target_path, new_fname), os.path.join(transfer_dir, 'web_summaries', new_fname))
 
-
+print("Done done!")
