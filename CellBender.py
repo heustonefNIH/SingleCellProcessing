@@ -57,7 +57,7 @@ cellbender remove-background {flags} \\
 {gpu_run} \\
 --input {paths} \\
 --output {outfile}; \\
-ptrepack --complevel 5 cb_feature_bc_matrix_filtered.h5:/matrix cb-seurat_feature_bc_matrix_filtered.h5:/matrix
+ptrepack --complevel 5 cb_feature_bc_matrix_filtered.h5:/matrix cb_seurat_feature_bc_matrix_filtered.h5:/matrix
 
 """
 	with open (cellbender_file, 'a') as cellbender:
