@@ -12,7 +12,7 @@ from collections import defaultdict
 
 
 sc_dir = "./testFolder/"
-transfer_dir = "./summary_transfer"
+transfer_dir = "./preprocessing_summaries"
 transfer_files = ['web_summary', 'metrics_summary', 'cb_feature_bc_matrix_metrics.csv', 'cb_feature_bc_matrix_report', 'cb_feature_bc_matrix.pdf']
 rename_files = ['web_summary', 'metrics_summary', 'cb_feature_bc_matrix_report', 'cb_feature_bc_matrix.pdf']
 # req_outs_folder = True
