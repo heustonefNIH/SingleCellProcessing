@@ -1,0 +1,65 @@
+import argparse
+
+def get_args():
+	"""
+    Build and parse command-line arguments for the Cellranger_swarm.py script.
+    Returns:
+        argparse.Namespace
+    """
+	parser = argparse.ArgumentParser(
+		description="Generate cellranger swarm file from fastq directory"	
+	)
+	parser.add_argument(
+		'-f', '--fastq_dir',
+		default='/Users/heustonef/Library/CloudStorage/OneDrive-NationalInstitutesofHealth/SingleCellMetaAnalysis/GitRepositories/SingleCellProcessing/testFolder',
+		# required=True,
+		help='Directory containing fastq files'
+	)
+	parser.add_argument(
+		'-id', '--sample_id_format',
+		default='HPAP-?\d{3}',
+		# required=True,
+		metavar="REGEX",
+		help="Format of the sample IDs (e.g., '^HPAP-?\d{3}')"
+	)
+	parser.add_argument(
+		'--logfile',
+		default='Cellranger_swarm.log',
+		help='Log file to record renaming events and missing sample information'
+	)
+	parser.add_argument(
+		'-d', '--data_type',
+		choices=['rna', 'atac'],
+		default='rna',
+		help='Type of sequencing data (rna or atac)'
+	)	
+	parser.add_argument(
+		'-s', '--swarmfile_name',
+		default='cellranger_v10.0.0.swarm',
+		help='Name of the swarm file to be created'
+	)
+	parser.add_argument(
+		'--allow_renaming',
+		action='store_true',
+		help='Run fx_hpap_rename on files that do not match the expected pattern'
+	)
+	parser.add_argument(
+		'--dry_run',
+		action='store_true',
+		help='Perform a dry run without actually writing the swarm file'
+	)
+	parser.add_argument(
+		'--allow_loose_match',
+		action='store_false',
+		help='Add wildcards to end of --id regex'
+	)
+	parser.add_argument(
+		'--path_restrictions',
+		help='Require specific path structure for fastq files (e.g., Single Cell RNA-Seq or Single-cell Multiome (ATAC+RNA))'
+	)
+	parser.add_argument(
+		'--debug',
+		action='store_true',
+		help='Enable debug logging'
+	)
+	return parser.parse_args()
