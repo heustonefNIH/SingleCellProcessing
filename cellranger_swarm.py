@@ -90,8 +90,7 @@ def main():
                     fname,
                     dirpath,
                     fastq_file_pattern,
-                    dry_run=dry_run,
-                    logfile=logfile
+                    dry_run=dry_run
                 )
                 if new_name:
                     fname = new_name

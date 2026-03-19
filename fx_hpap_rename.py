@@ -2,7 +2,10 @@ import os
 import re
 import logging
 
-def hpap_rename(fname, dirpath, target_pattern, logfile, dry_run):
+logger = logging.getLogger(__name__)
+
+def hpap_rename(fname, dirpath, target_pattern, dry_run=False):
+
     if not target_pattern.match(fname):
         # apply renaming rules
         new_name = fname
@@ -10,17 +13,31 @@ def hpap_rename(fname, dirpath, target_pattern, logfile, dry_run):
         new_name = re.sub('_fastq-data', '', new_name)
         new_name = re.sub('_10xscRNA_', '_', new_name)
         new_name = re.sub(r'HPAP(\d{3})', r'HPAP-\1', new_name)
-        if new_name == fname:
-            return None
-        
+
         src = os.path.join(dirpath, fname)
         dst = os.path.join(dirpath, new_name)
 
-        logger = logging.getLogger(__name__)
-        logger.info(f"{'Dry run:' if dry_run else 'Renaming'} {os.path.basename(src)} -> {os.path.basename(dst)}")
+        #Safety checks for renaming
+        if not new_name:
+            logger.error("Renaming %s creates an invalid filename(%r)", fname, new_name)
+            return None
+        if new_name in {".", ".."}:
+            logger.error("Renaming %s creates an invalid filename(%r)", fname, new_name)
+            return None
+        
 
-    if not dry_run:
-        os.rename(src, dst)
+        if os.path.exists(dst):
+            logger.error("Cannot rename %s to %s because destination already exists.", src, dst)
+            return None
+        if src == dst:
+            logger.debug("Source and destination are identical: %s", src)
+            return None
 
+        if dry_run:
+            logger.info("DRY RUN: Would rename %s -> %s", src, dst)
+            return new_name
+    
+    os.rename(src, dst)
+    logger.info("Renamed %s -> %s", src, dst)
     return new_name
 
