@@ -9,7 +9,7 @@ import re
 import logging
 
 from collections import defaultdict
-from logging_utils import setup_logging
+from fx_logging_utils import setup_logging
 from fx_cellranger_command import call_cellranger_command
 from fx_hpap_rename import hpap_rename
 from cellranger_argparse import get_args
