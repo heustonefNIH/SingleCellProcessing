@@ -11,20 +11,18 @@ def get_args():
 	)
 	parser.add_argument(
 		'-f', '--fastq_dir',
-		default='/Users/heustonef/Library/CloudStorage/OneDrive-NationalInstitutesofHealth/SingleCellMetaAnalysis/GitRepositories/SingleCellProcessing/testFolder',
-		# required=True,
+		required=True,
 		help='Directory containing fastq files'
 	)
 	parser.add_argument(
 		'-id', '--sample_id_format',
 		default='HPAP-?\d{3}',
-		# required=True,
 		metavar="REGEX",
 		help="Format of the sample IDs (e.g., '^HPAP-?\d{3}')"
 	)
 	parser.add_argument(
 		'--logfile',
-		default='Cellranger_swarm.log',
+		default='cellranger_swarm.log',
 		help='Log file to record renaming events and missing sample information'
 	)
 	parser.add_argument(
