@@ -62,12 +62,11 @@ def main():
         extra={'console_only': True}
     )
     # Generate dynamic filename matching pattern
-    sample_id_core = sample_id_format.lstrip("^")
     internal_tracking = r"(?:_[^_]+)*" if allow_loose_match else ""
 
     # fastq_file_prefix = re.compile(rf"^(?:{sample_id_core}).*\.fastq\.gz$")
     fastq_file_pattern = re.compile(
-    rf"""^(?P<sampleID>{sample_id_core})
+    rf"""^(?P<sampleID>{sample_id_format})
         (?P<internalTracking>{internal_tracking})
         _S(?P<chipsample>\d{{1,2}})
         _(?P<laneID>L\d{{3}})
@@ -80,16 +79,10 @@ def main():
         logger.info(f"Applying path restrictions: {path_restrictions}")
         path_restrictions = re.compile(path_restrictions)     
     
-    # Adjust sample_id_format --allow_loose_match
-    if allow_loose_match:
-        sample_id_pattern = sample_id_core
-    else:
-        sample_id_pattern = rf"{sample_id_core}{internal_tracking}"
-    
-    logger.debug("Using sample_id_pattern: %s", sample_id_pattern)
+    logger.debug("Using sample_id_pattern: %s", sample_id_format)
  
     # Create fastq list
-    samples = defaultdict(dict)
+    samples = defaultdict(lambda: defaultdict(dict))
 
     for dirpath, _, filenames in os.walk(fastq_dir):
         for fname in filenames:
@@ -111,9 +104,10 @@ def main():
             if m:
                 logger.debug("Matched sampleID: %s, %s", m.group("sampleID"), fname)
                 sampleID = m.group("sampleID")
+                internal_tracking = m.group("internalTracking")
                 readID = m.group("readID")
                 full_path = os.path.join(dirpath, fname)
-                samples[sampleID][readID] = full_path
+                samples[sampleID][internal_tracking][readID] = full_path
             else:
                 logger.debug("No match")
                 logger.warning(f"Skipping {fname} after renaming attempt; still does not match pattern.")
@@ -123,31 +117,52 @@ def main():
 
     # filter for complete sets
     required_reads = {"R1", "R2", "I1"}
-    complete_samples = {
-        sampleID: paths
-        for sampleID, paths in samples.items()
-        if required_reads.issubset(paths.keys())
-    }
+    complete_samples = {}
+    for sampleID, library_id in samples.items():
+        complete_libraries={}
+        for tracking, reads in library_id.items():
+            if required_reads.issubset(reads.keys()):
+                complete_libraries[tracking] = reads
+            else:
+                logger.warning(
+                    "incomplete library for %s_%s: found %s",
+                    sampleID, tracking, list(reads.keys())
+                )
+        if complete_libraries:
+            logger.debug("Complete libraries for sample %s: %s", sampleID, list(complete_libraries.keys()))
+            complete_samples[sampleID] = complete_libraries
+
     logger.info(f"{len(complete_samples)} complete samples found.", 
                 extra={'console_only': True}
     )
 
     # Create swarm file
     if len(complete_samples) > 0:
-         with open(swarmfile_name, 'w') as swarmfile:
-                header = (
-                    f"#swarm -f {swarmfile_name} -g 64 -t 12 --time=48:00:00 "
-                    f'--merge-output --module {cellranger_module} --sbatch "--mail-type=BEGIN,END,FAIL"\n\n'
-                )
-                swarmfile.write(header)
-
-    # Print results
-    for sampleID, paths in sorted(complete_samples.items()): 
-        read_path = next(iter(paths.values()))
-        sample_path = os.path.dirname(read_path)
-    # Write swarm file for sample
-        with open(swarmfile_name, 'a') as swarmfile:
-            swarmfile.write(call_cellranger_command(sampleID, sample_path, ref_genome_cmd, cellranger_module))
+        with open(swarmfile_name, 'w') as swarmfile:
+            header = (
+                f"#swarm -f {swarmfile_name} -g 64 -t 12 --time=48:00:00 "
+                f'--merge-output --module {cellranger_module} --sbatch "--mail-type=BEGIN,END,FAIL"\n\n'
+            )
+            swarmfile.write(header)
+        # Generate dict of results
+        for sampleID, library_id in samples.items():
+            sample_names = [
+                f"{sampleID}{track}" if track else sampleID
+                for track in library_id.keys()
+            ]
+            sample_names = sorted(sample_names)
+            sample_arg = ",".join(sample_names)
+            library_tracker = next(iter(library_id.values()))
+            read_path = next(iter(library_tracker.values()))
+            sample_path = os.path.dirname(read_path)
+        # Write swarm file for sample
+            with open(swarmfile_name, 'a') as swarmfile:
+                swarmfile.write(call_cellranger_command(
+                    output_ID = sampleID, 
+                    sample_path = sample_path, 
+                    ref_genome_cmd = ref_genome_cmd, 
+                    sample_args = sample_arg,
+                    cellranger_module = cellranger_module))
 
     # Log missing samples
     missing_samples = set(samples) - set(complete_samples)
