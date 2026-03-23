@@ -16,7 +16,7 @@ def get_args():
 	)
 	parser.add_argument(
 		'-id', '--sample_id_format',
-		default='HPAP-?\d{3}',
+		default='HPAP-\d{3}',
 		metavar="REGEX",
 		help="Format of the sample IDs (e.g., '^HPAP-?\d{3}')"
 	)

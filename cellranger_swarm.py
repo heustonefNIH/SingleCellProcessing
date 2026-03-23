@@ -22,13 +22,16 @@ def main():
     logfile = args.logfile
     sequencedata_type = args.data_type 
     swarmfile_name = args.swarmfile_name
-
-    dry_run = args.dry_run
     allow_loose_match = args.allow_loose_match
     path_restrictions = args.path_restrictions
 
+    dry_run = args.dry_run
+    debug = args.debug
+    run_mode = dry_run or debug
+
+
     #Set up logging
-    setup_logging(logfile, debug=args.debug)
+    setup_logging(logfile, debug=debug)
     logger = logging.getLogger(__name__)
     logger.info("Starting Cellranger_swarm", 
                 extra={'console_only': True}
@@ -62,7 +65,7 @@ def main():
     sample_id_core = sample_id_format.lstrip("^")
     internal_tracking = r"(?:_[^_]+)*" if allow_loose_match else ""
 
-    fastq_file_prefix = re.compile(rf"^(?:{sample_id_core}).*\.fastq\.gz$")
+    # fastq_file_prefix = re.compile(rf"^(?:{sample_id_core}).*\.fastq\.gz$")
     fastq_file_pattern = re.compile(
     rf"""^(?P<sampleID>{sample_id_core})
         (?P<internalTracking>{internal_tracking})
@@ -72,7 +75,10 @@ def main():
         .*\.fastq\.gz$
     """,
     re.X,
-    )      
+    )
+    if path_restrictions:
+        logger.info(f"Applying path restrictions: {path_restrictions}")
+        path_restrictions = re.compile(path_restrictions)     
     
     # Adjust sample_id_format --allow_loose_match
     if allow_loose_match:
@@ -89,7 +95,7 @@ def main():
         for fname in filenames:
             if path_restrictions and not re.search(path_restrictions, dirpath):
                 continue
-            if not fastq_file_prefix.match(fname):
+            if not fname.endswith('.fastq.gz'):
                 continue
             m = fastq_file_pattern.match(fname)
             if not m and args.allow_renaming:
@@ -97,8 +103,7 @@ def main():
                 new_name = hpap_rename(
                     fname,
                     dirpath,
-                    fastq_file_pattern,
-                    dry_run=dry_run
+                    run_mode=run_mode
                 )
                 if new_name:
                     fname = new_name
