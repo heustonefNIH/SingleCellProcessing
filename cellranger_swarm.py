@@ -105,15 +105,15 @@ def main():
                     m = fastq_file_pattern.match(fname)
             if m:
                 logger.debug("Matched sampleID: %s, %s", m.group("sampleID"), fname)
+                sampleID = m.group("sampleID")
+                readID = m.group("readID")
+                full_path = os.path.join(dirpath, fname)
+                samples[sampleID][readID] = full_path
             else:
                 logger.debug("No match")
                 logger.warning(f"Skipping {fname} after renaming attempt; still does not match pattern.")
                 continue
-            sampleID = m.group("sampleID")
-            readID = m.group("readID")
-            full_path = os.path.join(dirpath, fname)
 
-            samples[sampleID][readID] = full_path
 
 
     # filter for complete sets
