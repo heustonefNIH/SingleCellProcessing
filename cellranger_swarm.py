@@ -30,7 +30,9 @@ def main():
     #Set up logging
     setup_logging(logfile, debug=args.debug)
     logger = logging.getLogger(__name__)
-    logger.info("Starting Cellranger_swarm")
+    logger.info("Starting Cellranger_swarm", 
+                extra={'console_only': True}
+    )
 
     #define data type
     if sequencedata_type=='atac':
@@ -53,18 +55,17 @@ def main():
         Swarmfile name: {swarmfile_name}
         Dry run: {dry_run}
         Allow loose match: {allow_loose_match}
-        Path restrictions: {path_restrictions}\n""")
-
-    # Adjust sample_id_format if it ends with .*?
-    sample_id_core = sample_id_format
-    if sample_id_core.endswith(".*?"):
-        sample_id_core = sample_id_core[:-3]
-    sample_id_prefix = sample_id_core + (".*?" if allow_loose_match else "")
-
+        Path restrictions: {path_restrictions}\n""",
+        extra={'console_only': True}
+    )
     # Generate dynamic filename matching pattern
+    sample_id_core = sample_id_format.lstrip("^")
+    internal_tracking = r"(?:_[^_]+)*" if allow_loose_match else ""
+
     fastq_file_prefix = re.compile(rf"^(?:{sample_id_core}).*\.fastq\.gz$")
     fastq_file_pattern = re.compile(
-    rf"""^(?P<sampleID>{sample_id_prefix})
+    rf"""^(?P<sampleID>{sample_id_core})
+        (?P<internalTracking>{internal_tracking})
         _S(?P<chipsample>\d{{1,2}})
         _(?P<laneID>L\d{{3}})
         _(?P<readID>R1|R2|I1|I2)
@@ -72,15 +73,22 @@ def main():
     """,
     re.X,
     )      
-
+    
+    # Adjust sample_id_format --allow_loose_match
+    if allow_loose_match:
+        sample_id_pattern = sample_id_core
+    else:
+        sample_id_pattern = rf"{sample_id_core}{internal_tracking}"
+    
+    logger.debug("Using sample_id_pattern: %s", sample_id_pattern)
+ 
     # Create fastq list
     samples = defaultdict(dict)
 
     for dirpath, _, filenames in os.walk(fastq_dir):
         for fname in filenames:
-            if path_restrictions:
-                if path_restrictions not in dirpath:
-                    continue
+            if path_restrictions and not re.search(path_restrictions, dirpath):
+                continue
             if not fastq_file_prefix.match(fname):
                 continue
             m = fastq_file_pattern.match(fname)
@@ -95,10 +103,11 @@ def main():
                 if new_name:
                     fname = new_name
                     m = fastq_file_pattern.match(fname)
-                if not m:
-                    logger.warning(f"Skipping {fname} after renaming attempt; still does not match pattern.")
-                    continue
-            if not m:
+            if m:
+                logger.debug("Matched sampleID: %s, %s", m.group("sampleID"), fname)
+            else:
+                logger.debug("No match")
+                logger.warning(f"Skipping {fname} after renaming attempt; still does not match pattern.")
                 continue
             sampleID = m.group("sampleID")
             readID = m.group("readID")
@@ -114,7 +123,9 @@ def main():
         for sampleID, paths in samples.items()
         if required_reads.issubset(paths.keys())
     }
-    logger.info(f"{len(complete_samples)} complete samples found.")
+    logger.info(f"{len(complete_samples)} complete samples found.", 
+                extra={'console_only': True}
+    )
 
     # Create swarm file
     if len(complete_samples) > 0:
@@ -141,7 +152,9 @@ def main():
             logger.warning(incomplete_sample)
 
     if os.path.isfile(swarmfile_name):
-        logger.info(''.join(("Created ", swarmfile_name)))
+        logger.info(''.join(("Created ", swarmfile_name)), 
+                    extra={'console_only': True}
+        )
     else:
         logger.warning("Swarmfile creation failed.")
 

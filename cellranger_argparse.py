@@ -48,12 +48,12 @@ def get_args():
 	)
 	parser.add_argument(
 		'--allow_loose_match',
-		action='store_false',
-		help='Add wildcards to end of --id regex'
+		action='store_true',
+		help='Allow wildcards at the end of --id regex'
 	)
 	parser.add_argument(
 		'--path_restrictions',
-		help='Require specific path structure for fastq files (e.g., Single Cell RNA-Seq or Single-cell Multiome (ATAC+RNA))'
+		help='Require specific or regex path structure for fastq files (e.g., Single Cell RNA-Seq or Single-cell Multiome (ATAC+RNA))'
 	)
 	parser.add_argument(
 		'--debug',
