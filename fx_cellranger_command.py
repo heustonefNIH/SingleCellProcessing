@@ -18,7 +18,7 @@ def call_cellranger_command(output_ID, sample_path, ref_genome_cmd, sample_args,
 		library_path = shlex.quote(library_path)
 		sample_path = shlex.quote(sample_path)
 		path_variables = f"""LIBRARY_PATH={library_path}; \\"""
-		sample_args = f"""--library=\"$LIBRARY_PATH\""""
+		sample_args = f"""--libraries=\"$LIBRARY_PATH\""""
 	else:
 		raise ValueError("Unsupported data_type: %s" % data_type)
 	
