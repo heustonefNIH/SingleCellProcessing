@@ -180,7 +180,9 @@ def main():
                     sample_path = sample_path, 
                     ref_genome_cmd = ref_genome_cmd, 
                     sample_args = sample_arg,
-                    cellranger_module = cellranger_module))
+                    cellranger_module = cellranger_module, 
+                    data_type = data_type
+                    ))
 
     # Log missing samples
     missing_samples = set(samples) - set(complete_samples)
