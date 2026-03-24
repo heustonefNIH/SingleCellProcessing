@@ -165,11 +165,12 @@ def main():
                 sample_arg = ",".join(sample_names)
                 sample_arg = f"--sample={sample_arg}"
             elif data_type == 'multi':
+                logger.info("Generating library CSV for multiome sample %s", sampleID)
                 csv_path = arc_library_csv(
-                    sampleID, 
-                    sampleID+"_GEX", 
-                    sampleID+"_ATAC", 
-                    read_path
+                    sampleID = sampleID, 
+                    GEX_id = sampleID+"_GEX", 
+                    ATAC_id = sampleID+"_ATAC", 
+                    sample_path = sample_path
                 )
                 sample_arg = f"--library={csv_path}"
         # Write swarm file for sample

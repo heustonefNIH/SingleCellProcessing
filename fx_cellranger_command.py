@@ -20,14 +20,12 @@ ulimit -u 10240 -n 16384; \\
 
 """
 
-def arc_library_csv(sampleID, GEX_id, ATAC_id, sample_path, out_dir = None):
-	if out_dir is None:
-		out_dir = sample_path
+def arc_library_csv(sampleID, GEX_id, ATAC_id, sample_path):
 	csv_content = f"""fastqs,sample,library_type,
 {sample_path},{GEX_id},Gene Expression,
 {sample_path},{ATAC_id},ATAC,
 """
-	csv_path = os.path.join(out_dir, f"{sampleID}_library.csv")
+	csv_path = os.path.join(sample_path, f"{sampleID}_library.csv")
 	with open(csv_path, 'w') as csv_file:
 		csv_file.write(csv_content)
 	return csv_path
