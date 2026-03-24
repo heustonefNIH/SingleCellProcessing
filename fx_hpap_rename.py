@@ -13,7 +13,7 @@ def hpap_rename(fname, dirpath, run_mode):
     new_name = re.sub(r'HPAP(\d{3})', r'HPAP-\1', new_name)
     new_name = re.sub(r'\.(L\d{3})\.', r'_\1_', new_name) 
     new_name = re.sub(r'\.(S\d+_L\d{3})', r'_\1', new_name) 
-    new_name = re.sub(r'_(R1|R2|I1|I2)\.fastq\.gz$', r'_\1_001.fastq.gz', new_name)
+    new_name = re.sub(r'_(R\d|I\d)\.fastq\.gz$', r'_\1_001.fastq.gz', new_name)
 
     src = os.path.join(dirpath, fname)
     dst = os.path.join(dirpath, new_name)
