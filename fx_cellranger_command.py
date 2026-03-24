@@ -21,7 +21,7 @@ LIBRARY_PATH={library_path}; \\"""
 		raise ValueError("Unsupported data_type: %s" % data_type)
 	
 	return f"""# SAMPLE {output_ID} 
-{path_variables} \\
+{path_variables}
 ulimit -u 10240 -n 16384; \\
 {cellranger_module} count --id={output_ID} \\
 {ref_genome_cmd} \\
