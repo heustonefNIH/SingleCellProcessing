@@ -1,4 +1,8 @@
 import shlex
+import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 def call_cellranger_command(output_ID, sample_path, ref_genome_cmd, sample_args, cellranger_module):
 	sample_path = shlex.quote(sample_path)
@@ -15,3 +19,15 @@ ulimit -u 10240 -n 16384; \\
 --maxjobs=10
 
 """
+
+def arc_library_csv(sampleID, GEX_id, ATAC_id, sample_path, out_dir = None):
+	if out_dir is None:
+		out_dir = sample_path
+	csv_content = f"""fastqs,sample,library_type,
+{sample_path},{GEX_id},Gene Expression,
+{sample_path},{ATAC_id},ATAC,
+"""
+	csv_path = os.path.join(out_dir, f"{sampleID}_library.csv")
+	with open(csv_path, 'w') as csv_file:
+		csv_file.write(csv_content)
+	return csv_path

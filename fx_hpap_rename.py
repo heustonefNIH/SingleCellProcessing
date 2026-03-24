@@ -8,10 +8,11 @@ def hpap_rename(fname, dirpath, run_mode):
 
     new_name = fname
     # apply renaming rules
-    new_name = re.sub(r'\.(L\d{3})\.', r'_S1_\1_', new_name)   # does nothing if no match
     new_name = re.sub('_fastq-data', '', new_name)
     new_name = re.sub('_10xscRNA_', '_', new_name)
     new_name = re.sub(r'HPAP(\d{3})', r'HPAP-\1', new_name)
+    new_name = re.sub(r'\.(L\d{3})\.', r'_\1_', new_name) 
+    new_name = re.sub(r'\.(S\d+_L\d{3})', r'_\1', new_name) 
     new_name = re.sub(r'_(R1|R2|I1|I2)\.fastq\.gz$', r'_\1_001.fastq.gz', new_name)
 
     src = os.path.join(dirpath, fname)

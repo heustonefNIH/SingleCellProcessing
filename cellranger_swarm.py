@@ -10,7 +10,7 @@ import logging
 
 from collections import defaultdict
 from fx_logging_utils import setup_logging
-from fx_cellranger_command import call_cellranger_command
+from fx_cellranger_command import call_cellranger_command, arc_library_csv
 from fx_hpap_rename import hpap_rename
 from cellranger_argparse import get_args
 
@@ -20,7 +20,7 @@ def main():
     fastq_dir = args.fastq_dir
     sample_id_format = args.sample_id_format
     logfile = args.logfile
-    sequencedata_type = args.data_type 
+    data_type = args.data_type 
     swarmfile_name = args.swarmfile_name
     allow_loose_match = args.allow_loose_match
     path_restrictions = args.path_restrictions
@@ -38,23 +38,27 @@ def main():
     )
 
     #define data type
-    if sequencedata_type=='atac':
+    if data_type=='atac':
         cellranger_module = 'cellranger-atac'
         ref_genome_cmd = "--reference=/fdb/cellranger-arc/refdata-cellranger-arc-GRCh38-2024-A"
         logger.info("set atac variables")
-    elif sequencedata_type=='rna':
+    elif data_type=='rna':
         cellranger_module = 'cellranger'
         ref_genome_cmd = "--transcriptome=$CELLRANGER_REF/refdata-gex-GRCh38-2024-A"
         logger.info("set rna variables")
+    elif data_type=='multi':
+        cellranger_module = 'cellranger-arc'
+        ref_genome_cmd = "--reference=/fdb/cellranger-arc/refdata-cellranger-arc-GRCh38-2024-A"
+        logger.info("set multi variables")
     else:
-        logger.error("Error: data_type must be 'rna' or 'atac'")
+        logger.error("Error: data_type must be 'rna', 'atac', or 'multi'")
         return
 
     logger.info(f"""Running Cellranger_swarm.py with the following parameters:
         Fastq directory: {fastq_dir}
         Sample ID format: {sample_id_format}
         Logfile: {logfile}
-        Data type: {sequencedata_type}
+        Data type: {data_type}
         Swarmfile name: {swarmfile_name}
         Dry run: {dry_run}
         Allow loose match: {allow_loose_match}
@@ -144,6 +148,7 @@ def main():
                 f'--merge-output --module {cellranger_module} --sbatch "--mail-type=BEGIN,END,FAIL"\n\n'
             )
             swarmfile.write(header)
+
         # Generate dict of results
         for sampleID, library_id in samples.items():
             sample_names = [
@@ -151,10 +156,22 @@ def main():
                 for track in library_id.keys()
             ]
             sample_names = sorted(sample_names)
-            sample_arg = ",".join(sample_names)
             library_tracker = next(iter(library_id.values()))
             read_path = next(iter(library_tracker.values()))
             sample_path = os.path.dirname(read_path)
+            
+            # Generate sample argument based on data_type
+            if data_type == 'rna':
+                sample_arg = ",".join(sample_names)
+                sample_arg = f"--sample={sample_arg}"
+            elif data_type == 'multi':
+                csv_path = arc_library_csv(
+                    sampleID, 
+                    sampleID+"_GEX", 
+                    sampleID+"_ATAC", 
+                    read_path
+                )
+                sample_arg = f"--library={csv_path}"
         # Write swarm file for sample
             with open(swarmfile_name, 'a') as swarmfile:
                 swarmfile.write(call_cellranger_command(

@@ -27,9 +27,9 @@ def get_args():
 	)
 	parser.add_argument(
 		'-d', '--data_type',
-		choices=['rna', 'atac'],
+		choices=['rna', 'atac', 'multi'],
 		default='rna',
-		help='Type of sequencing data (rna or atac)'
+		help='Type of sequencing data (rna, atac, or multi)'
 	)	
 	parser.add_argument(
 		'-s', '--swarmfile_name',
