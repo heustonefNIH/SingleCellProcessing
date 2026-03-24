@@ -12,7 +12,7 @@ ulimit -u 10240 -n 16384; \\
 {cellranger_module} count --id={output_ID} \\
 {ref_genome_cmd} \\
 --fastqs="$FASTQ_PATH" \\
---sample={sample_args} \\
+{sample_args} \\
 --create-bam=false \\
 --localcores=$SLURM_CPUS_PER_TASK \\
 --localmem=62 \\
