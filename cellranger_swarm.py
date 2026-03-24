@@ -71,7 +71,7 @@ def main():
         _S(?P<chipsample>\d{{1,2}})
         _(?P<laneID>L\d{{3}})
         _(?P<readID>R1|R2|I1|I2)
-        .*\.fastq\.gz$
+        _001\.fastq\.gz$
     """,
     re.X,
     )
