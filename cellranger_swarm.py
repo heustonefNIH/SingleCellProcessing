@@ -74,7 +74,7 @@ def main():
         (?P<internalTracking>{internal_tracking})
         _S(?P<chipsample>\d{{1,2}})
         _(?P<laneID>L\d{{3}})
-        _(?P<readID>R1|R2|I1|I2)
+        _(?P<readID>R\d|I\d)
         _001\.fastq\.gz$
     """,
     re.X,
