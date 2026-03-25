@@ -68,7 +68,7 @@ def arc_library_csv(sampleID, sample_names, sample_path, gex_identifier = None, 
         logger.warning(f"No ATAC sample names found for {sampleID}: {sample_names}")
 
     with open(csv_path, 'w') as csv_file:
-        csv_file.write("fastqs,sample_id,library_id\n")
+        csv_file.write("fastqs,sample,library_type\n")
         for sample in gex_samples:
             csv_file.write(f"{sample_path},{sample},Gene Expression\n")
         for sample in atac_samples:
