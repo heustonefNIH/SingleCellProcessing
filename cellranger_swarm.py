@@ -24,6 +24,8 @@ def main():
     swarmfile_name = args.swarmfile_name
     allow_loose_match = args.allow_loose_match
     path_restrictions = args.path_restrictions
+    gex_identifier = args.gex_identifier
+    atac_identifier = args.atac_identifier
 
     dry_run = args.dry_run
     debug = args.debug
@@ -47,9 +49,15 @@ def main():
         ref_genome_cmd = "--transcriptome=$CELLRANGER_REF/refdata-gex-GRCh38-2024-A"
         logger.info("set rna variables")
     elif data_type=='multi':
+        logger.info("set multi variables")
         cellranger_module = 'cellranger-arc'
         ref_genome_cmd = "--reference=/fdb/cellranger-arc/refdata-cellranger-arc-GRCh38-2024-A"
-        logger.info("set multi variables")
+        if not gex_identifier:
+            logger.warning("No GEX identifier provided; defaulting to 'GEX'")
+            gex_identifier = ["GEX"]
+        if not atac_identifier:
+            logger.warning("No ATAC identifier provided; defaulting to 'ATAC'")
+            atac_identifier = ["ATAC"]
     else:
         logger.error("Error: data_type must be 'rna', 'atac', or 'multi'")
         return
@@ -168,8 +176,9 @@ def main():
                 logger.info("Generating library CSV for multiome sample %s", sampleID)
                 csv_path = arc_library_csv(
                     sampleID = sampleID, 
-                    GEX_id = sampleID+"_GEX", 
-                    ATAC_id = sampleID+"_ATAC", 
+                    sample_names = sample_names,
+                    gex_identifier = gex_identifier,
+                    atac_identifier = atac_identifier,
                     sample_path = sample_path
                 )
                 sample_arg = f"--library={csv_path}"

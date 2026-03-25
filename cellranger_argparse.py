@@ -56,6 +56,14 @@ def get_args():
 		help='Require specific or regex path structure for fastq files (e.g., Single Cell RNA-Seq or Single-cell Multiome (ATAC+RNA))'
 	)
 	parser.add_argument(
+		'--gex_identifier',
+		help='Custom identifier for GEX samples in multiome datasets (default: "GEX"). Required if data_type is "multi"'
+	)
+	parser.add_argument(
+		'--atac_identifier',
+		help='Custom identifier for ATAC samples in multiome datasets (default: "ATAC"). Required if data_type is "multi"'
+	)
+	parser.add_argument(
 		'--debug',
 		action='store_true',
 		help='Enable debug logging'
