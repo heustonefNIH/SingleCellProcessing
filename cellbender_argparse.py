@@ -26,14 +26,9 @@ def get_args():
 		help='Name of the swarm file to be created. If None, commands will be printed to console instead of written to file.'
 	)
 	parser.add_argument(
-		'--cuda',
-		action='store_false',
-		help='Include --cuda flag in cellbender command for GPU acceleration (Default: True)'
-	)
-	parser.add_argument(
 		'--gpu_partition',
-		default='gpu:v100x:1',
-		help='Slurm gpu partition passed to --gres flag (default: "gpu:v100x:1")'
+		default="v100x:1",
+		help='Slurm gpu partition passed to --gres flag (example: "v100x:1")'
 	)
 	parser.add_argument(
 		'--flags',

@@ -16,7 +16,6 @@ def main():
     cellranger_folder = args.cellranger_folder
     sample_id_format = args.sample_id_format
     cellbender_file = args.cellbender_file
-    cuda = args.cuda
     gpu_partition = args.gpu_partition
     flags = args.flags
 
@@ -30,8 +29,7 @@ def main():
     cellranger_folder: {cellranger_folder}
     sample_id_format: {sample_id_format}
     cellbender_file: {cellbender_file}
-    Cellbender flags:
-    cuda: {cuda}
+    Cellbender flags: {flags}
     gpu_partition: {gpu_partition}
     {flags}
     
@@ -42,10 +40,8 @@ def main():
     )
 
     if gpu_partition:
-        gres_flag = f"--gres={gpu_partition}"
-        if cuda: 
-            cuda = "--cuda"
-            gres_flag = "".join(["--cuda \\", "\n--gres=", gpu_partition])
+        swarm_gres_flag = f"--partition=gpu --gres=gpu:{gpu_partition}"
+        flags = "".join(["--cuda \\", "\n", flags])
     if sample_id_format:
         sample_id_regex = re.compile(sample_id_format)
     else:
@@ -54,7 +50,7 @@ def main():
     
     swarm_statement=(
         f'#swarm -f {cellbender_file} -g 64 '
-        f'--time=24:00:00 --gres={gpu_partition} -t 8 '
+        f'--time=24:00:00 {swarm_gres_flag} -t 8 '
         '--merge-output --module cellbender '
         '--sbatch "--mail-type=BEGIN,END,FAIL"\n\n')
 
@@ -99,7 +95,6 @@ def main():
                     f"cellbender remove-background \\\n"
                     f"--input {matrix_path} \\\n"
                     f"--output {outfile} \\\n"
-                    f"{cuda} \\\n"
                     f"{flags}; \\\n"
                     f"ptrepack --complevel 5 cb_feature_bc_matrix_filtered.h5:/matrix cb_seurat_feature_bc_matrix_filtered.h5:/matrix\n"
                     f"\n\n"

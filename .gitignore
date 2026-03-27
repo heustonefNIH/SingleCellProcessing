@@ -7,8 +7,10 @@
 *.RDS
 .ipynb_checkpoints/*
 
-#Ignore raw sequencing data
-PancDB_data
+#Ignore test outputs
+*.log
+*.swarm
+*_swarm.txt
 
 #Ignore archived files
 Archives/*
@@ -19,3 +21,6 @@ web_summaries/
 #Ignore test folders
 testFolder
 backup-testFolder
+summary_transfer
+transfer_folder
+__pycache__
