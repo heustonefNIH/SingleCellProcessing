@@ -12,7 +12,7 @@ def call_cellranger_command(output_ID, sample_path, ref_genome_cmd, sample_args,
         sample_path = shlex.quote(sample_path)
         path_variables = f"""FASTQ_PATH={sample_path}; \\"""
         sample_args = f"""--fastqs="$FASTQ_PATH" \\
---sample={sample_args}"""
+--samples={sample_args}"""
     elif data_type in ['atac', 'multi']:
         library_path = os.path.join(sample_path, f"{output_ID}_library.csv")
         library_path = shlex.quote(library_path)

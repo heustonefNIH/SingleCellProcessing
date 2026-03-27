@@ -174,7 +174,7 @@ def main():
             # Generate sample argument based on data_type
             if data_type == 'rna':
                 sample_arg = ",".join(sample_names)
-                sample_arg = f"--sample={sample_arg}"
+                sample_arg = f"{sample_arg}"
             elif data_type == 'multi':
                 logger.info("Generating library CSV for multiome sample %s", sampleID)
                 csv_path = arc_library_csv(
