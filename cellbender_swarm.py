@@ -31,7 +31,6 @@ def main():
     cellbender_file: {cellbender_file}
     Cellbender flags: {flags}
     gpu_partition: {gpu_partition}
-    {flags}
     
     debug: {debug}
     logfile: {logfile}
