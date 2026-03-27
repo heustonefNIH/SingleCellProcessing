@@ -26,49 +26,49 @@ def main():
     #Set up logging
     setup_logging(logfile, debug=debug)
     logger = logging.getLogger(__name__)
-    logger.info("Starting CellBender Swarm File Generation", 
-                extra={'console_only': True}
-    )
     logger.info(f"""Running cellbender_swarm with the following parameters:
     cellranger_folder: {cellranger_folder}
     sample_id_format: {sample_id_format}
     cellbender_file: {cellbender_file}
+    Cellbender flags:
     cuda: {cuda}
     gpu_partition: {gpu_partition}
-    flags: {flags}
+    {flags}
+    
     debug: {debug}
     logfile: {logfile}
-    """
+    """, 
+    extra = {'console_only': True}
     )
 
-    if cellbender_file:
-        cellbender_file = os.path.join(cellranger_folder, cellbender_file)
     if gpu_partition:
         gres_flag = f"--gres={gpu_partition}"
         if cuda: #add --cuda flag if cuda is True and gpu_partition is specified
-            gres_flag = f"--cuda \\
-                  {gpu_partition}"
+            gres_flag = "".join(["--cuda \\", "\n--gres=", gpu_partition])
     if sample_id_format:
         sample_id_regex = re.compile(sample_id_format)
+    else:
+        sample_id_regex = None
+    logger.debug(f"Using sample ID regex: {sample_id_regex}")
     
-    swarm_statement=f'swarm -f {cellbender_file} -g 32 
-    --time=8:00:00 --partition=gpu {gres_flag} -t 8 
-    --merge-output --module cellbender 
-    --sbatch "--mail-type=BEGIN,END,FAIL"\n\n'
+    swarm_statement=(
+        f'#swarm -f {cellbender_file} -g 32 '
+        '--time=8:00:00 --partition=gpu {gres_flag} -t 8 '
+        '--merge-output --module cellbender '
+        '--sbatch "--mail-type=BEGIN,END,FAIL"\n\n')
 
     # Create list of raw_feature_bc_matrix.h5 files
     sample_list = defaultdict(dict)
     for sampleID in os.listdir(cellranger_folder):
-        if sample_id_regex and not sample_id_regex.search(sampleID):
+        if not sample_id_regex.search(sampleID):
             logger.debug(f"Skipping {sampleID} - does not match sample ID format")
             continue
-        
-        sample_path = os.path.abspath(sampleID)
+        if not os.path.isdir(os.path.join(cellranger_folder, sampleID, "outs")):
+            logger.debug(f"Skipping {sampleID} - no outs directory")
+            continue  # skip non-directories and directories without outs folder
+        sample_path = os.path.join(cellranger_folder, sampleID)
         outs_dir = os.path.join(sample_path, "outs")
         
-        if not os.path.isdir(sample_path) and not os.path.isdir(outs_dir):
-            continue  # skip non-directories and directories without outs folder
-
         # Now look directly in the outs folder
         for fname in os.listdir(outs_dir):
             if fname == "raw_feature_bc_matrix.h5":
@@ -83,25 +83,35 @@ def main():
         logger.error("No samples found matching the specified sample ID format.")
         return
     else:
-        with open (cellbender_file, 'a') as cellbender:
+        logger.info(f"Found {len(sample_list)} samples to process. Generating {cellbender_file}...", 
+                    extra={'console_only': True})
+        with open (cellbender_file, 'w') as cellbender:
             cellbender.write(swarm_statement)
-    # Write swarm file
-    for sampleID, matrixFile in sorted(sample_list.items()):
-        for paths, outfile in matrixFile.items():
-            logger.info(f"Processing sample {sampleID} with matrix file {paths}")
-            cellbender_cmd=f"""#Sample {sampleID}
-    cd {paths}; \\
-    cellbender remove-background {flags} \\
-    {gres_flag} \\
-    --input {paths} \\
-    --output {outfile}; \\
-    ptrepack --complevel 5 cb_feature_bc_matrix_filtered.h5:/matrix cb_seurat_feature_bc_matrix_filtered.h5:/matrix
+        # Write swarm file
+        for sampleID, matrixFile in sorted(sample_list.items()):
+            for matrix_path, outfile in matrixFile.items():
+                cd_path = os.path.dirname(matrix_path)
+                logger.info(f"Processing sample {sampleID} with matrix file {matrix_path}")
+                cellbender_cmd=(
+                    f"#Sample {sampleID}\n"
+                    f"cd {cd_path}; \\\n"
+                    f"cellbender remove-background {flags} \\\n"
+                    f"{gres_flag} \\\n"
+                    f"--input {matrix_path} \\\n"
+                    f"--output {outfile}; \\\n"
+                    f"ptrepack --complevel 5 cb_feature_bc_matrix_filtered.h5:/matrix cb_seurat_feature_bc_matrix_filtered.h5:/matrix\n"
+                    f"\n\n"
+                    )
+            with open (cellbender_file, 'a') as cellbender:
+                cellbender.write(cellbender_cmd)
 
-    """
-        with open (cellbender_file, 'a') as cellbender:
-            cellbender.write(cellbender_cmd)
-
-    print("Done")
-
+    if os.path.isfile(cellbender_file):
+        logger.info(''.join(("Created ", cellbender_file)), 
+                    extra={'console_only': True}
+        )
+    else:
+        logger.error(''.join(("Failed to create ", cellbender_file)), 
+                    extra={'console_only': True}
+        )
 if __name__ == "__main__":
     main()

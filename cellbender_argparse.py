@@ -15,8 +15,8 @@ def get_args():
 		help='Directory containing cellranger output data'
 	)
 	parser.add_argument(
-		'sample_id_format',
-		default='HPAP-\d{3}',
+		'-id', '--sample_id_format',
+		default=None,
 		metavar="REGEX",
 		help="Format of the sample IDs (e.g., '^HPAP-?\d{3}'). Can be single regex or list"
 	)
@@ -31,7 +31,8 @@ def get_args():
 		help='Include --cuda flag in cellbender command for GPU acceleration (Default: True)'
 	)
 	parser.add_argument(
-		gpu_partition = 'gpu:v100x:1',
+		'--gpu_partition',
+		default='gpu:v100x:1',
 		help='Slurm gpu partition passed to --gres flag (default: "gpu:v100x:1")'
 	)
 	parser.add_argument(
