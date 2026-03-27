@@ -43,7 +43,8 @@ def main():
 
     if gpu_partition:
         gres_flag = f"--gres={gpu_partition}"
-        if cuda: #add --cuda flag if cuda is True and gpu_partition is specified
+        if cuda: 
+            cuda = "--cuda"
             gres_flag = "".join(["--cuda \\", "\n--gres=", gpu_partition])
     if sample_id_format:
         sample_id_regex = re.compile(sample_id_format)
@@ -52,8 +53,8 @@ def main():
     logger.debug(f"Using sample ID regex: {sample_id_regex}")
     
     swarm_statement=(
-        f'#swarm -f {cellbender_file} -g 32 '
-        f'--time=8:00:00 --gres={gpu_partition} -t 8 '
+        f'#swarm -f {cellbender_file} -g 64 '
+        f'--time=24:00:00 --gres={gpu_partition} -t 8 '
         '--merge-output --module cellbender '
         '--sbatch "--mail-type=BEGIN,END,FAIL"\n\n')
 
@@ -95,10 +96,11 @@ def main():
                 cellbender_cmd=(
                     f"#Sample {sampleID}\n"
                     f"cd {cd_path}; \\\n"
-                    f"cellbender remove-background {flags} \\\n"
-                    f"{gres_flag} \\\n"
+                    f"cellbender remove-background \\\n"
                     f"--input {matrix_path} \\\n"
-                    f"--output {outfile}; \\\n"
+                    f"--output {outfile} \\\n"
+                    f"{cuda} \\\n"
+                    f"{flags}; \\\n"
                     f"ptrepack --complevel 5 cb_feature_bc_matrix_filtered.h5:/matrix cb_seurat_feature_bc_matrix_filtered.h5:/matrix\n"
                     f"\n\n"
                     )
