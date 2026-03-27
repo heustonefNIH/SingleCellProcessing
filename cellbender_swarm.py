@@ -53,7 +53,7 @@ def main():
     
     swarm_statement=(
         f'#swarm -f {cellbender_file} -g 32 '
-        '--time=8:00:00 --partition=gpu {gres_flag} -t 8 '
+        f'--time=8:00:00 --gres={gpu_partition} -t 8 '
         '--merge-output --module cellbender '
         '--sbatch "--mail-type=BEGIN,END,FAIL"\n\n')
 
