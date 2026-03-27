@@ -76,7 +76,9 @@ def main():
                 
     #only start swarm file if there's at least one sample to process
     if len(sample_list) == 0:
-        logger.error("No samples found matching the specified sample ID format.")
+        logger.error("No samples found matching the specified sample ID format.", 
+                     extra={'console_only': True}
+        )
         return
     else:
         logger.info(f"Found {len(sample_list)} samples to process. Generating {cellbender_file}...", 
