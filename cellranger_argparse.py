@@ -64,6 +64,11 @@ def get_args():
 		help='Custom identifier for ATAC samples in multiome datasets (default: "ATAC"). Required if data_type is "multi"'
 	)
 	parser.add_argument(
+		'--ref_genome',
+		default='refdata-gex-GRCh38-2024-A',
+		help='Reference genome to use for cellranger in path (e.g., "refdata-gex-GRCh38-2024-A").'
+	)
+	parser.add_argument(
 		'--debug',
 		action='store_true',
 		help='Enable debug logging'

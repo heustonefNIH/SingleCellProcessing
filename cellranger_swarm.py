@@ -24,6 +24,8 @@ def main():
     swarmfile_name = args.swarmfile_name
     allow_loose_match = args.allow_loose_match
     path_restrictions = args.path_restrictions
+    ref_genome = args.ref_genome
+
     gex_identifier = args.gex_identifier
     atac_identifier = args.atac_identifier
 
@@ -42,16 +44,16 @@ def main():
     #define data type
     if data_type=='atac':
         cellranger_module = 'cellranger-atac'
-        ref_genome_cmd = "--reference=/fdb/cellranger-arc/refdata-cellranger-arc-GRCh38-2024-A"
+        ref_genome_cmd = f"--reference=$CELLRANGER_ARC_REF/{ref_genome}"
         logger.info("set atac variables")
     elif data_type=='rna':
         cellranger_module = 'cellranger'
-        ref_genome_cmd = "--transcriptome=$CELLRANGER_REF/refdata-gex-GRCh38-2024-A"
+        ref_genome_cmd = f"--transcriptome=$CELLRANGER_REF/{ref_genome}"
         logger.info("set rna variables")
     elif data_type=='multi':
         logger.info("set multi variables")
         cellranger_module = 'cellranger-arc'
-        ref_genome_cmd = "--reference=/fdb/cellranger-arc/refdata-cellranger-arc-GRCh38-2024-A"
+        ref_genome_cmd = f"--reference=$CELLRANGER_ARC_REF/{ref_genome}"
         if not gex_identifier:
             logger.warning("No GEX identifier provided; defaulting to 'GEX'")
             gex_identifier = ["GEX"]
@@ -70,6 +72,7 @@ def main():
         Swarmfile name: {swarmfile_name}
         Dry run: {dry_run}
         Allow loose match: {allow_loose_match}
+        Ref genome: {ref_genome}
         Path restrictions: {path_restrictions}\n""",
         extra={'console_only': True}
     )
@@ -183,15 +186,16 @@ def main():
                 )
                 sample_arg = f"--library={csv_path}"
         # Write swarm file for sample
-            with open(swarmfile_name, 'a') as swarmfile:
-                swarmfile.write(call_cellranger_command(
-                    output_ID = sampleID, 
-                    sample_path = sample_path, 
-                    ref_genome_cmd = ref_genome_cmd, 
-                    sample_args = sample_arg,
-                    cellranger_module = cellranger_module, 
-                    data_type = data_type
-                    ))
+            if not dry_run:
+                with open(swarmfile_name, 'a') as swarmfile:
+                    swarmfile.write(call_cellranger_command(
+                        output_ID = sampleID, 
+                        sample_path = sample_path, 
+                        ref_genome_cmd = ref_genome_cmd, 
+                        sample_args = sample_arg,
+                        cellranger_module = cellranger_module, 
+                        data_type = data_type
+                        ))
 
     # Log missing samples
     missing_samples = set(samples) - set(complete_samples)
