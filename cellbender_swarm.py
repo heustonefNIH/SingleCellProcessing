@@ -68,10 +68,10 @@ def main():
         # Now look directly in the outs folder
         for fname in os.listdir(outs_dir):
             if fname == "raw_feature_bc_matrix.h5":
-                matrix_path = os.path.join(outs_dir, fname)
-                sample_list[sampleID][matrix_path] = os.path.join(
+                matrix_path = os.path.abspath(os.path.join(outs_dir, fname))
+                sample_list[sampleID][matrix_path] = os.path.abspath(os.path.join(
                     outs_dir, "cb_feature_bc_matrix.h5"
-                )
+                ))
                 logger.debug(f"Found matrix file for sample {sampleID}: {matrix_path}")
                 
     #only start swarm file if there's at least one sample to process
@@ -88,7 +88,7 @@ def main():
         # Write swarm file
         for sampleID, matrixFile in sorted(sample_list.items()):
             for matrix_path, outfile in matrixFile.items():
-                cd_path = os.path.dirname(matrix_path)
+                cd_path = os.path.abspath(os.path.dirname(matrix_path))
                 logger.info(f"Processing sample {sampleID} with matrix file {matrix_path}")
                 cellbender_cmd=(
                     f"#Sample {sampleID}\n"
