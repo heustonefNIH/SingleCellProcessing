@@ -45,15 +45,18 @@ def main():
     if data_type=='atac':
         cellranger_module = 'cellranger-atac'
         ref_genome_cmd = f"--reference=$CELLRANGER_ARC_REF/{ref_genome}"
+        required_reads = {"R1", "R2", "R3", "I1"}
         logger.info("set atac variables")
     elif data_type=='rna':
         cellranger_module = 'cellranger'
         ref_genome_cmd = f"--transcriptome=$CELLRANGER_REF/{ref_genome}"
+        required_reads = {"R1", "R2"}
         logger.info("set rna variables")
     elif data_type=='multi':
         logger.info("set multi variables")
         cellranger_module = 'cellranger-arc'
         ref_genome_cmd = f"--reference=$CELLRANGER_ARC_REF/{ref_genome}"
+        required_reads = {"R1", "R2", "R3", "I1"}
         if not gex_identifier:
             logger.warning("No GEX identifier provided; defaulting to 'GEX'")
             gex_identifier = ["GEX"]
@@ -131,7 +134,6 @@ def main():
 
 
     # filter for complete sets
-    required_reads = {"R1", "R2", "I1"}
     complete_samples = {}
     for sampleID, library_id in samples.items():
         complete_libraries={}
@@ -161,7 +163,7 @@ def main():
             swarmfile.write(header)
 
         # Generate dict of results
-        for sampleID, library_id in samples.items():
+        for sampleID, library_id in complete_samples.items():
             sample_names = [
                 f"{sampleID}{track}" if track else sampleID
                 for track in library_id.keys()
